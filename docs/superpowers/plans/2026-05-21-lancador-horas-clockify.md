@@ -57,6 +57,7 @@ requires-python = ">=3.12"
 dependencies = [
     "httpx>=0.27",
     "icalendar>=6.0",
+    "recurring-ical-events>=3.0",
     "python-dotenv>=1.0",
 ]
 
@@ -261,14 +262,22 @@ END:VEVENT
 BEGIN:VEVENT
 UID:evt-2
 SUMMARY:Daily Time IA
-DTSTART;TZID=America/Sao_Paulo:20260128T090000
-DTEND;TZID=America/Sao_Paulo:20260128T093000
+DTSTART;TZID=America/Sao_Paulo:20260105T090000
+DTEND;TZID=America/Sao_Paulo:20260105T093000
+RRULE:FREQ=WEEKLY;BYDAY=MO,WE
 END:VEVENT
 BEGIN:VEVENT
 UID:evt-3
 SUMMARY:Reunião de outro dia
 DTSTART;TZID=America/Sao_Paulo:20260129T100000
 DTEND;TZID=America/Sao_Paulo:20260129T110000
+END:VEVENT
+BEGIN:VEVENT
+UID:evt-4
+SUMMARY:Reunião cancelada
+DTSTART;TZID=America/Sao_Paulo:20260128T160000
+DTEND;TZID=America/Sao_Paulo:20260128T170000
+STATUS:CANCELLED
 END:VEVENT
 END:VCALENDAR
 """
@@ -290,10 +299,20 @@ from clockify_horas.ics import parse_ics
 TZ = ZoneInfo("America/Sao_Paulo")
 
 
-def test_parse_ics_filtra_eventos_do_dia(sample_ics):
+def test_parse_ics_expande_recorrencia_e_ignora_cancelado(sample_ics):
+    # 2026-01-28 é quarta. "Daily Time IA" recorre seg/qua desde 05/01 -> ocorre no dia.
+    # "Reunião cancelada" (STATUS:CANCELLED) às 16h NÃO pode aparecer.
     eventos = parse_ics(sample_ics, target_date=date(2026, 1, 28), tz=TZ)
     titulos = [e.title for e in eventos]
     assert titulos == ["Daily Time IA", "Reunião Cliente X"]  # ordenado por início
+
+
+def test_parse_ics_recorrencia_preserva_horario_da_instancia(sample_ics):
+    eventos = parse_ics(sample_ics, target_date=date(2026, 1, 28), tz=TZ)
+    daily = eventos[0]
+    assert daily.title == "Daily Time IA"
+    assert daily.start.hour == 9 and daily.start.minute == 0
+    assert daily.start.date() == date(2026, 1, 28)  # instância, não a série original (05/01)
 
 
 def test_parse_ics_preserva_horarios(sample_ics):
@@ -303,7 +322,8 @@ def test_parse_ics_preserva_horarios(sample_ics):
     assert reuniao.end.hour == 14
 
 
-def test_parse_ics_dia_sem_eventos_retorna_vazio(sample_ics):
+def test_parse_ics_dia_sem_ocorrencia_retorna_vazio(sample_ics):
+    # 2026-01-30 é sexta: sem ocorrência da recorrência (seg/qua) e sem eventos avulsos.
     assert parse_ics(sample_ics, target_date=date(2026, 1, 30), tz=TZ) == []
 ```
 
@@ -315,23 +335,32 @@ Expected: FAIL — `ModuleNotFoundError: No module named 'clockify_horas.ics'`.
 - [ ] **Step 4: Implementar `parse_ics` em `src/clockify_horas/ics.py`**
 
 ```python
-from datetime import date, datetime
+from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
+import recurring_ical_events
 from icalendar import Calendar
 
 from clockify_horas.models import CalEvent
 
 
 def parse_ics(ics_text: str, target_date: date, tz: ZoneInfo) -> list[CalEvent]:
-    """Extrai os eventos VEVENT cujo início cai em ``target_date`` (no fuso ``tz``).
+    """Extrai os eventos cujo início cai em ``target_date`` (no fuso ``tz``).
 
-    Eventos all-day (DTSTART sem horário) são ignorados — não viram lançamento.
-    Retorna ordenado por horário de início.
+    Expande recorrências (RRULE/RDATE) e respeita EXDATE/RECURRENCE-ID via
+    ``recurring_ical_events`` — essencial porque a agenda do Outlook é dominada por
+    reuniões recorrentes. Ignora eventos all-day e os marcados ``STATUS:CANCELLED``.
+    Retorna ordenado por horário de início, em hora local.
     """
     cal = Calendar.from_ical(ics_text)
+    day_start = datetime.combine(target_date, time.min, tzinfo=tz)
+    day_end = day_start + timedelta(days=1)
+    ocorrencias = recurring_ical_events.of(cal).between(day_start, day_end)
+
     eventos: list[CalEvent] = []
-    for comp in cal.walk("VEVENT"):
+    for comp in ocorrencias:
+        if str(comp.get("STATUS", "")).upper() == "CANCELLED":
+            continue
         start = comp.get("DTSTART")
         end = comp.get("DTEND")
         if start is None or end is None:
@@ -343,7 +372,7 @@ def parse_ics(ics_text: str, target_date: date, tz: ZoneInfo) -> list[CalEvent]:
         start_local = _to_local(start_dt, tz)
         end_local = _to_local(end_dt, tz)
         if start_local.date() != target_date:
-            continue
+            continue  # ocorrência que cruza a meia-noite vinda do dia anterior
         eventos.append(
             CalEvent(title=str(comp.get("SUMMARY", "")), start=start_local, end=end_local)
         )
@@ -595,18 +624,19 @@ def test_load_config_le_variaveis(monkeypatch):
     monkeypatch.setenv("CLOCKIFY_API_KEY", "key123")
     monkeypatch.setenv("CLOCKIFY_WORKSPACE_ID", "ws1")
     monkeypatch.setenv("OUTLOOK_ICS_URL", "https://x/cal.ics")
-    cfg = load_config()
+    cfg = load_config(use_dotenv=False)
     assert cfg.api_key == "key123"
     assert cfg.workspace_id == "ws1"
     assert cfg.ics_url == "https://x/cal.ics"
 
 
 def test_load_config_falta_chave_levanta(monkeypatch):
+    # use_dotenv=False evita que um .env local repopule a chave deletada
     monkeypatch.delenv("CLOCKIFY_API_KEY", raising=False)
     monkeypatch.setenv("CLOCKIFY_WORKSPACE_ID", "ws1")
     monkeypatch.setenv("OUTLOOK_ICS_URL", "https://x/cal.ics")
     try:
-        load_config()
+        load_config(use_dotenv=False)
     except ValueError as e:
         assert "CLOCKIFY_API_KEY" in str(e)
     else:
@@ -664,9 +694,14 @@ class Defaults:
 _REQUIRED = ("CLOCKIFY_API_KEY", "CLOCKIFY_WORKSPACE_ID", "OUTLOOK_ICS_URL")
 
 
-def load_config() -> Config:
-    """Carrega credenciais de .env / ambiente. Levanta ValueError se faltar alguma."""
-    load_dotenv()
+def load_config(use_dotenv: bool = True) -> Config:
+    """Carrega credenciais de .env / ambiente. Levanta ValueError se faltar alguma.
+
+    ``use_dotenv=False`` (usado em testes) pula a leitura do arquivo .env, evitando que
+    um .env local repopule variáveis que o teste removeu de propósito.
+    """
+    if use_dotenv:
+        load_dotenv()
     missing = [k for k in _REQUIRED if not os.getenv(k)]
     if missing:
         raise ValueError(f"Variáveis de ambiente faltando: {', '.join(missing)}")
@@ -735,12 +770,16 @@ git commit -m "feat: carregamento de config (.env) e defaults (json)"
 - [ ] **Step 1: Escrever teste falho `tests/test_clockify_api.py`**
 
 ```python
+from datetime import date
+from zoneinfo import ZoneInfo
+
 import httpx
 import respx
 
 from clockify_horas.clockify_api import ClockifyClient
 
-BASE = "https://api.clockify.me/v1"
+BASE = "https://api.clockify.me/api/v1"
+TZ = ZoneInfo("America/Sao_Paulo")
 
 
 def _client() -> ClockifyClient:
@@ -773,12 +812,31 @@ def test_get_metadata_monta_indices():
 
 
 @respx.mock
-def test_get_entries_for_date():
-    respx.get(f"{BASE}/workspaces/ws1/user/u1/time-entries").mock(
+def test_get_entries_for_date_usa_janela_utc_do_dia_local():
+    route = respx.get(f"{BASE}/workspaces/ws1/user/u1/time-entries").mock(
         return_value=httpx.Response(200, json=[{"id": "e1"}])
     )
-    entries = _client().get_entries_for_date("u1", "2026-01-28")
+    entries = _client().get_entries_for_date("u1", date(2026, 1, 28), TZ)
     assert entries == [{"id": "e1"}]
+    # dia local 28/01 em UTC-3 -> 28/01 03:00Z até 29/01 03:00Z
+    sent = route.calls.last.request
+    assert sent.url.params["start"] == "2026-01-28T03:00:00Z"
+    assert sent.url.params["end"] == "2026-01-29T03:00:00Z"
+
+
+@respx.mock
+def test_get_metadata_pagina_ate_pagina_incompleta():
+    respx.get(f"{BASE}/user").mock(return_value=httpx.Response(200, json={"id": "u1"}))
+    respx.get(f"{BASE}/workspaces/ws1/projects").mock(
+        return_value=httpx.Response(200, json=[{"id": "p1", "name": "Procurement Garage"}])
+    )
+    respx.get(f"{BASE}/workspaces/ws1/projects/p1/tasks").mock(
+        return_value=httpx.Response(200, json=[])
+    )
+    respx.get(f"{BASE}/workspaces/ws1/tags").mock(return_value=httpx.Response(200, json=[]))
+    md = _client().get_metadata()
+    # 1 projeto (< page-size) encerra a paginação em uma página só
+    assert list(md.projects) == ["Procurement Garage"]
 
 
 @respx.mock
@@ -802,13 +860,16 @@ Expected: FAIL — `ModuleNotFoundError: No module named 'clockify_horas.clockif
 - [ ] **Step 3: Implementar `src/clockify_horas/clockify_api.py`**
 
 ```python
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import httpx
 
 from clockify_horas.models import Metadata
 
-BASE_URL = "https://api.clockify.me/v1"
+BASE_URL = "https://api.clockify.me/api/v1"
+_PAGE_SIZE = 200
 
 
 class ClockifyClient:
@@ -827,6 +888,17 @@ class ClockifyClient:
         resp.raise_for_status()
         return resp.json()
 
+    def _get_all(self, path: str) -> list[dict[str, Any]]:
+        """GET paginado: percorre páginas até vir uma página incompleta."""
+        items: list[dict[str, Any]] = []
+        page = 1
+        while True:
+            batch = self._get(path, params={"page": page, "page-size": _PAGE_SIZE})
+            items.extend(batch)
+            if len(batch) < _PAGE_SIZE:
+                return items
+            page += 1
+
     def get_user_id(self) -> str:
         return self._get("/user")["id"]
 
@@ -836,17 +908,13 @@ class ClockifyClient:
     def get_metadata(self) -> Metadata:
         ws = self.workspace_id
         user_id = self.get_user_id()
-        projects_raw = self._get(f"/workspaces/{ws}/projects", params={"page-size": 200})
+        projects_raw = self._get_all(f"/workspaces/{ws}/projects")
         projects = {p["name"]: p["id"] for p in projects_raw}
         tasks: dict[tuple[str, str], str] = {}
         for p in projects_raw:
-            tasks_raw = self._get(
-                f"/workspaces/{ws}/projects/{p['id']}/tasks", params={"page-size": 200}
-            )
-            for t in tasks_raw:
+            for t in self._get_all(f"/workspaces/{ws}/projects/{p['id']}/tasks"):
                 tasks[(p["id"], t["name"])] = t["id"]
-        tags_raw = self._get(f"/workspaces/{ws}/tags", params={"page-size": 200})
-        tags = {g["name"]: g["id"] for g in tags_raw}
+        tags = {g["name"]: g["id"] for g in self._get_all(f"/workspaces/{ws}/tags")}
         return Metadata(
             workspace_id=ws,
             user_id=user_id,
@@ -855,13 +923,21 @@ class ClockifyClient:
             tags=tags,
         )
 
-    def get_entries_for_date(self, user_id: str, date_iso: str) -> list[dict[str, Any]]:
-        """Lançamentos do usuário no dia (para checagem anti-duplicata)."""
+    def get_entries_for_date(
+        self, user_id: str, target_date: date, tz: ZoneInfo
+    ) -> list[dict[str, Any]]:
+        """Lançamentos do usuário no dia local (para checagem anti-duplicata).
+
+        A janela é o dia local convertido para instantes UTC — evitando o erro de
+        tratar 00:00–23:59 local como se fosse UTC (que em UTC-3 perderia 3h do dia).
+        """
+        day_start = datetime.combine(target_date, time.min, tzinfo=tz).astimezone(UTC)
+        day_end = day_start + timedelta(days=1)
         return self._get(
             f"/workspaces/{self.workspace_id}/user/{user_id}/time-entries",
             params={
-                "start": f"{date_iso}T00:00:00Z",
-                "end": f"{date_iso}T23:59:59Z",
+                "start": day_start.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "end": day_end.strftime("%Y-%m-%dT%H:%M:%SZ"),
             },
         )
 
@@ -876,7 +952,7 @@ class ClockifyClient:
 - [ ] **Step 4: Rodar para confirmar PASS**
 
 Run: `uv run pytest tests/test_clockify_api.py -v`
-Expected: PASS — 4 passed.
+Expected: PASS — 5 passed.
 
 - [ ] **Step 5: Commit**
 
@@ -1024,7 +1100,7 @@ import respx
 
 from clockify_horas.cli import main
 
-BASE = "https://api.clockify.me/v1"
+BASE = "https://api.clockify.me/api/v1"
 
 
 def _setup_env(monkeypatch):
@@ -1044,7 +1120,7 @@ def test_agenda_imprime_json(monkeypatch, capsys, sample_ics):
     assert out[0]["start"].startswith("2026-01-28T09:00")
 
 
-@respx.mock
+@respx.mock(assert_all_called=False)  # o POST é registrado mas, em dry-run, não é chamado
 def test_add_dry_run_nao_posta(monkeypatch, capsys, tmp_path):
     _setup_env(monkeypatch)
     respx.get(f"{BASE}/user").mock(return_value=httpx.Response(200, json={"id": "u1"}))
@@ -1087,9 +1163,6 @@ def test_add_real_posta(monkeypatch, tmp_path):
     respx.get(f"{BASE}/workspaces/ws1/tags").mock(
         return_value=httpx.Response(200, json=[{"id": "g1", "name": "Atividades Internas"}])
     )
-    respx.get(f"{BASE}/workspaces/ws1/user/u1/time-entries").mock(
-        return_value=httpx.Response(200, json=[])
-    )
     post_route = respx.post(f"{BASE}/workspaces/ws1/time-entries").mock(
         return_value=httpx.Response(201, json={"id": "new1"})
     )
@@ -1105,6 +1178,23 @@ def test_add_real_posta(monkeypatch, tmp_path):
     rc = main(["add", "--file", str(entries_file)])
     assert rc == 0
     assert post_route.called
+
+
+@respx.mock
+def test_entries_lista_lancamentos_do_dia(monkeypatch, capsys):
+    _setup_env(monkeypatch)
+    respx.get(f"{BASE}/user").mock(return_value=httpx.Response(200, json={"id": "u1"}))
+    respx.get(f"{BASE}/workspaces/ws1/user/u1/time-entries").mock(
+        return_value=httpx.Response(200, json=[
+            {"id": "e1", "description": "Já lançado",
+             "timeInterval": {"start": "2026-01-28T16:00:00Z", "end": "2026-01-28T17:00:00Z"}}
+        ])
+    )
+    rc = main(["entries", "--date", "2026-01-28"])
+    assert rc == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out[0]["description"] == "Já lançado"
+    assert out[0]["start"] == "2026-01-28T16:00:00Z"
 ```
 
 - [ ] **Step 2: Rodar para confirmar falha**
@@ -1119,6 +1209,8 @@ import argparse
 import json
 import sys
 from datetime import date, datetime
+from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from clockify_horas.clockify_api import ClockifyClient
 from clockify_horas.config import load_config
@@ -1126,12 +1218,13 @@ from clockify_horas.entries import build_payload
 from clockify_horas.ics import fetch_ics, parse_ics
 from clockify_horas.models import TimeEntry
 
-try:
-    from zoneinfo import ZoneInfo
+_TZ = ZoneInfo("America/Sao_Paulo")
 
-    _TZ = ZoneInfo("America/Sao_Paulo")
-except Exception:  # pragma: no cover
-    _TZ = None  # type: ignore[assignment]
+
+def _parse_local(value: str) -> datetime:
+    """ISO8601 -> datetime aware. Se vier sem offset, assume o fuso local."""
+    dt = datetime.fromisoformat(value)
+    return dt if dt.tzinfo is not None else dt.replace(tzinfo=_TZ)
 
 
 def _cmd_agenda(args: argparse.Namespace) -> int:
@@ -1161,14 +1254,34 @@ def _cmd_meta(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_entries(args: argparse.Namespace) -> int:
+    """Lista lançamentos já existentes no dia — usado pelo /horas p/ anti-duplicata."""
+    cfg = load_config()
+    target = date.fromisoformat(args.date) if args.date else date.today()
+    client = ClockifyClient(cfg.api_key, cfg.workspace_id)
+    user_id = client.get_user_id()
+    existentes = client.get_entries_for_date(user_id, target, _TZ)
+    resumo = [
+        {
+            "id": e.get("id"),
+            "description": e.get("description"),
+            "start": e.get("timeInterval", {}).get("start"),
+            "end": e.get("timeInterval", {}).get("end"),
+        }
+        for e in existentes
+    ]
+    print(json.dumps(resumo, ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_add(args: argparse.Namespace) -> int:
     cfg = load_config()
-    raw = json.loads(open(args.file, encoding="utf-8").read())
+    raw = json.loads(Path(args.file).read_text(encoding="utf-8"))
     entries = [
         TimeEntry(
             description=item["description"],
-            start=datetime.fromisoformat(item["start"]),
-            end=datetime.fromisoformat(item["end"]),
+            start=_parse_local(item["start"]),
+            end=_parse_local(item["end"]),
             task_name=item["task_name"],
             tag_names=item["tag_names"],
             billable=bool(item["billable"]),
@@ -1200,6 +1313,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_meta = sub.add_parser("meta", help="Lista projetos/tarefas/tags do workspace")
     p_meta.set_defaults(func=_cmd_meta)
 
+    p_entries = sub.add_parser("entries", help="Lista lançamentos existentes no dia")
+    p_entries.add_argument("--date", help="AAAA-MM-DD (default: hoje)")
+    p_entries.set_defaults(func=_cmd_entries)
+
     p_add = sub.add_parser("add", help="Cria lançamentos a partir de um JSON")
     p_add.add_argument("--file", required=True, help="Arquivo JSON com a lista de lançamentos")
     p_add.add_argument("--dry-run", action="store_true", help="Imprime payloads sem postar")
@@ -1219,7 +1336,7 @@ if __name__ == "__main__":
 - [ ] **Step 4: Rodar para confirmar PASS**
 
 Run: `uv run pytest tests/test_cli.py -v`
-Expected: PASS — 3 passed.
+Expected: PASS — 4 passed.
 
 - [ ] **Step 5: Rodar a suíte inteira + lint + typecheck**
 
@@ -1230,7 +1347,7 @@ Expected: todos os testes passam, ruff sem erros, pyright sem erros.
 
 ```bash
 git add src/clockify_horas/cli.py tests/test_cli.py
-git commit -m "feat: CLI com subcomandos agenda, meta e add (--dry-run)"
+git commit -m "feat: CLI com subcomandos agenda, meta, entries e add (--dry-run)"
 ```
 
 ---
@@ -1260,9 +1377,9 @@ Siga EXATAMENTE este fluxo, um passo de cada vez, conversando em português:
    aplique os defaults de `defaults.json` (tarefa `.Célula de Inovação: Time IA`,
    etiqueta default, faturável default).
 
-2. **Anti-duplicata.** Rode `uv run clockify-horas meta` para obter `user_id` e
-   confirme se já existem lançamentos na data (a CLI expõe isso). Se houver, AVISE o
-   usuário e pergunte se quer continuar mesmo assim.
+2. **Anti-duplicata.** Rode `uv run clockify-horas entries --date <data>`. Se a saída
+   não for vazia, JÁ existem lançamentos nessa data — AVISE o usuário, mostre o que já
+   existe, e pergunte se quer continuar mesmo assim antes de seguir.
 
 3. **Trabalho avulso.** Pergunte ao usuário o que mais fez no dia além das reuniões,
    pedindo descrição e horários de início/fim. Acrescente como lançamentos.
@@ -1331,10 +1448,15 @@ uv run clockify-horas add --file lancamentos.json --dry-run
 - [ ] **Step 2: Validação manual (checklist, executar com credenciais reais)**
 
 - [ ] `uv run clockify-horas meta` retorna projetos/tarefas/tags reais e o `workspace_id` correto.
+      **Se der HTTP 404, a URL base está errada** — confirme `https://api.clockify.me/api/v1`.
 - [ ] Confirmar o nome exato da etiqueta default e atualizar `defaults.json`.
-- [ ] `uv run clockify-horas agenda --date <hoje>` lista as reuniões reais do Outlook.
-- [ ] Validar que o ICS expõe a agenda completa (sem omitir privados / sem atraso grave).
-- [ ] `/horas` num dia de teste, com `--dry-run`, mostra payloads corretos.
+- [ ] `uv run clockify-horas agenda --date <hoje>` lista as reuniões reais do Outlook,
+      **incluindo reuniões recorrentes** (dailies/syncs) — o ponto mais crítico de validar.
+- [ ] Validar que o ICS expõe a agenda completa (sem omitir privados / sem atraso grave) e
+      que eventos cancelados não aparecem. **Limitação conhecida:** reuniões que você
+      *recusou* podem ainda aparecer (o ICS nem sempre marca PARTSTAT) — revise na edição.
+- [ ] `uv run clockify-horas entries --date <hoje>` lista lançamentos já existentes (anti-duplicata).
+- [ ] `/horas` num dia de teste, com `--dry-run`, mostra payloads corretos (horários em UTC `Z`).
 - [ ] Lançar 1 entrada de teste real e conferir na UI do Clockify (campos, horário, faturável, tag).
 - [ ] Apagar a entrada de teste do Clockify.
 
@@ -1350,7 +1472,7 @@ git commit -m "docs: README com setup e uso do clockify-horas"
 ## Self-Review (preenchido)
 
 **1. Spec coverage:**
-- Leitura ICS do Outlook → Tasks 3, 4. ✅
+- Leitura ICS do Outlook (com expansão de recorrências) → Tasks 3, 4. ✅
 - Reuniões viram lançamento (descrição = título, horário real) → Task 5 `from_event`. ✅
 - Trabalho avulso → Task 10 (passo 3 do `/horas`). ✅
 - Tarefa default `.Célula de Inovação: Time IA` + exceções → Tasks 6 (default), 8 (resolução). ✅
@@ -1358,12 +1480,21 @@ git commit -m "docs: README com setup e uso do clockify-horas"
 - Faturável toggle → Tasks 5, 8 (campo `billable`). ✅
 - Horários precisos início/fim + conversão UTC → Tasks 5 (`to_utc_iso`), 8. ✅
 - Meta diária ~8h, avisa sem travar → Task 5 `target_warning`, Task 10 passo 5. ✅
-- Anti-duplicata → Task 7 `get_entries_for_date`, Task 10 passo 2. ✅
+- Anti-duplicata → Task 7 `get_entries_for_date` + Task 9 subcomando `entries` + Task 10 passo 2. ✅
 - Dry-run sempre antes → Task 9 (`--dry-run`), Task 10 passos 6-7. ✅
 - Fallback colar agenda manual → coberto pela natureza conversacional do `/horas` (orquestrador aceita entrada manual se `agenda` falhar). ✅
 - API key guiada → `.env.example` + README. ✅
 - Setup guiado workspace id → `meta` lista workspaces, README. ✅
 
+**Correções pós plan-critic (Gate 1):**
+- 🔴→✅ URL base corrigida para `https://api.clockify.me/api/v1` (Task 7 + testes).
+- 🔴→✅ Expansão de recorrências (RRULE) via `recurring-ical-events` + skip de `STATUS:CANCELLED` (Task 3); fixture e testes cobrem recorrência semanal e cancelado.
+- ⚠️→✅ Anti-duplicata agora tem superfície real (subcomando `entries`) e o `/horas` o invoca.
+- ⚠️→✅ Paginação nas listagens (`_get_all`) (Task 7).
+- ⚠️→✅ Janela UTC correta no `get_entries_for_date` para UTC-3 (Task 7).
+- ⚠️→✅ Datetimes naive localizados no `add`; `load_config(use_dotenv=False)` em testes (Tasks 6, 9).
+- ⚠️→✅ `_TZ` fixo (sem fallback `None` silencioso) (Task 9).
+
 **2. Placeholder scan:** sem TBD/TODO em código; a única nota de execução (nome exato da tag) é um valor de configuração confirmável em runtime, não lógica pendente.
 
-**3. Type consistency:** `TimeEntry`, `Metadata`, `Config`, `Defaults` usados de forma idêntica entre tasks; `build_payload(entry, metadata)`, `from_event(event, defaults)`, `to_utc_iso(dt)`, `parse_ics(text, target_date, tz)`, `fetch_ics(url)` com assinaturas consistentes em todos os pontos de uso.
+**3. Type consistency:** `TimeEntry`, `Metadata`, `Config`, `Defaults` usados de forma idêntica entre tasks; `build_payload(entry, metadata)`, `from_event(event, defaults)`, `to_utc_iso(dt)`, `parse_ics(text, target_date, tz)`, `fetch_ics(url)`, `get_entries_for_date(user_id, target_date, tz)` com assinaturas consistentes em todos os pontos de uso.
