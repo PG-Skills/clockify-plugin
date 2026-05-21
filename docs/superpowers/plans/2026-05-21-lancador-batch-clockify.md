@@ -137,9 +137,11 @@ Expected: FAIL — `SystemExit: 2` (argumento `business-days` inválido / subpar
 
 - [ ] **Step 3: Implementar em `src/clockify_horas/cli.py`**
 
-Adicionar o import no topo (junto aos demais `from clockify_horas...`):
+Adicionar os imports no topo (junto aos demais):
 
 ```python
+from typing import Any  # se ainda não importado
+
 from clockify_horas.bizdays import business_days
 ```
 
@@ -292,6 +294,41 @@ def test_entries_exige_date_ou_intervalo(capsys):
     assert rc == 2  # nem --date nem --start/--end
     err = capsys.readouterr().err
     assert "date" in err.lower() or "start" in err.lower()
+
+
+@respx.mock
+def test_entries_intervalo_borda_meia_noite(monkeypatch, capsys):
+    # 2026-05-08T02:00:00Z = 2026-05-07 23:00 local (UTC-3) -> agrupa em 07/05, não 08/05
+    _setup_env(monkeypatch)
+    respx.get(f"{BASE}/user").mock(return_value=httpx.Response(200, json={"id": "u1"}))
+    respx.get(f"{BASE}/workspaces/ws1/user/u1/time-entries").mock(
+        return_value=httpx.Response(
+            200,
+            json=[
+                {
+                    "id": "e1",
+                    "description": "Tarde do dia 7",
+                    "timeInterval": {"start": "2026-05-08T02:00:00Z", "end": "2026-05-08T02:30:00Z"},
+                }
+            ],
+        )
+    )
+    rc = main(["entries", "--start", "2026-05-01", "--end", "2026-05-07"])
+    assert rc == 0
+    out = json.loads(capsys.readouterr().out)
+    assert list(out.keys()) == ["2026-05-07"]
+
+
+@respx.mock
+def test_entries_intervalo_vazio(monkeypatch, capsys):
+    _setup_env(monkeypatch)
+    respx.get(f"{BASE}/user").mock(return_value=httpx.Response(200, json={"id": "u1"}))
+    respx.get(f"{BASE}/workspaces/ws1/user/u1/time-entries").mock(
+        return_value=httpx.Response(200, json=[])
+    )
+    rc = main(["entries", "--start", "2026-05-01", "--end", "2026-05-07"])
+    assert rc == 0
+    assert json.loads(capsys.readouterr().out) == {}
 ```
 
 - [ ] **Step 2: Rodar para confirmar falha**
@@ -321,7 +358,7 @@ def _cmd_entries(args: argparse.Namespace) -> int:
         existentes = client.get_entries_for_range(
             user_id, date.fromisoformat(args.start), date.fromisoformat(args.end), _TZ
         )
-        por_data: dict[str, list[dict]] = {}
+        por_data: dict[str, list[dict[str, Any]]] = {}
         for e in existentes:
             ini = e.get("timeInterval", {}).get("start")
             if not ini:
@@ -382,7 +419,105 @@ git commit -m "feat: entries aceita intervalo (--start/--end) agrupado por data"
 
 ---
 
-## Task 5: Slash command `/lancar`
+## Task 5: Tornar `add` resiliente a falha parcial (W1)
+
+Em lotes grandes (mês inteiro), uma falha no meio do loop hoje deixa entries já gravadas e
+aborta com traceback — re-rodar duplica. Esta task faz o `add` reportar progresso, parar
+limpo na primeira falha e sair com código ≠ 0, deixando claro até onde gravou (retry escopável).
+
+**Files:**
+- Modify: `src/clockify_horas/cli.py`
+- Test: `tests/test_cli.py`
+
+- [ ] **Step 1: Escrever teste falho em `tests/test_cli.py`**
+
+Adicionar ao final:
+
+```python
+@respx.mock
+def test_add_para_limpo_na_falha_parcial(monkeypatch, capsys, tmp_path):
+    _setup_env(monkeypatch)
+    respx.get(f"{BASE}/user").mock(return_value=httpx.Response(200, json={"id": "u1"}))
+    respx.get(f"{BASE}/workspaces/ws1/projects").mock(
+        return_value=httpx.Response(200, json=[{"id": "p1", "name": "Procurement Garage"}])
+    )
+    respx.get(f"{BASE}/workspaces/ws1/projects/p1/tasks").mock(
+        return_value=httpx.Response(200, json=[{"id": "t1", "name": "Time IA"}])
+    )
+    respx.get(f"{BASE}/workspaces/ws1/tags").mock(
+        return_value=httpx.Response(200, json=[{"id": "g1", "name": "Célula de Inovação"}])
+    )
+    # 1º POST ok, 2º falha (500)
+    respx.post(f"{BASE}/workspaces/ws1/time-entries").mock(
+        side_effect=[httpx.Response(201, json={"id": "ok1"}), httpx.Response(500)]
+    )
+    entries_file = tmp_path / "e.json"
+    entries_file.write_text(
+        json.dumps(
+            [
+                {"description": "Dia 1", "start": "2026-05-04T09:00:00-03:00",
+                 "end": "2026-05-04T10:00:00-03:00", "task_name": "Time IA",
+                 "tag_names": ["Célula de Inovação"], "billable": False},
+                {"description": "Dia 2", "start": "2026-05-05T09:00:00-03:00",
+                 "end": "2026-05-05T10:00:00-03:00", "task_name": "Time IA",
+                 "tag_names": ["Célula de Inovação"], "billable": False},
+            ]
+        ),
+        encoding="utf-8",
+    )
+    rc = main(["add", "--file", str(entries_file)])
+    assert rc == 1  # falha parcial sinalizada
+    err = capsys.readouterr().err
+    assert "1/2" in err  # gravou 1 de 2 antes da falha
+```
+
+- [ ] **Step 2: Rodar para confirmar falha**
+
+Run: `uv run pytest tests/test_cli.py::test_add_para_limpo_na_falha_parcial -v`
+Expected: FAIL — hoje `_cmd_add` não captura o erro (levanta `HTTPStatusError`), não retorna 1.
+
+- [ ] **Step 3: Implementar em `src/clockify_horas/cli.py`**
+
+Garantir `import httpx` no topo (adicionar se ausente). Substituir o bloco de escrita
+de `_cmd_add` (o `for p in payloads:` final) por:
+
+```python
+    gravados: list[str] = []
+    for i, p in enumerate(payloads, start=1):
+        try:
+            resp = client.create_entry(p)
+        except httpx.HTTPError as e:
+            print(
+                f"FALHA no item {i}/{len(payloads)} "
+                f"({p['description']} @ {p['start']}): {e}",
+                file=sys.stderr,
+            )
+            print(
+                f"Gravados com sucesso antes da falha: {len(gravados)}/{len(payloads)}. "
+                f"Reexecute apenas os itens restantes para evitar duplicata.",
+                file=sys.stderr,
+            )
+            return 1
+        gravados.append(resp.get("id"))
+        print(f"Lançado: {p['description']} -> {resp.get('id')}")
+    return 0
+```
+
+- [ ] **Step 4: Rodar para confirmar PASS + suíte/lint/typecheck**
+
+Run: `uv run pytest tests/test_cli.py::test_add_para_limpo_na_falha_parcial -v && uv run pytest -q && uv run ruff check . && uv run pyright`
+Expected: o teste passa; suíte inteira verde; ruff e pyright limpos.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/clockify_horas/cli.py tests/test_cli.py
+git commit -m "feat: add reporta progresso e para limpo em falha parcial (batch seguro)"
+```
+
+---
+
+## Task 6: Slash command `/lancar`
 
 **Files:**
 - Create: `.claude/commands/lancar.md`
@@ -426,10 +561,17 @@ para ler (uso típico: retroativo). Conduza em português, um passo de cada vez:
    Peça confirmação explícita.
 
 7. **Gravar.** Só após "pode lançar", rode `uv run clockify-horas add --file <tmp>`
-   (sem `--dry-run`). Reporte o resumo por dia.
+   (sem `--dry-run`). Reporte o resumo por dia. Se o `add` sair com código ≠ 0 (falha
+   parcial), ele informa quantos itens gravou antes de parar — monte um novo JSON SÓ com
+   os itens restantes (não regrave os já lançados) e rode de novo.
 
 Nunca pule a confirmação do passo 6. Nunca grave sem dry-run antes. Em lotes grandes
 (mês inteiro), confirme o total de dias e de horas antes de gravar.
+
+**Dedupe (importante):** a única proteção determinística contra duplicata é o passo 3
+(`entries`) + você OMITIR do JSON os dias já lançados. Não há trava no `add` — se incluir
+um dia já lançado no JSON, ele será gravado de novo. Por isso: sempre rode o passo 3 e
+exclua explicitamente os dias já preenchidos antes do dry-run.
 ````
 
 - [ ] **Step 2: Commit**
@@ -441,7 +583,7 @@ git commit -m "feat: slash command /lancar para lançamento batch multi-dia"
 
 ---
 
-## Task 6: README e validação manual
+## Task 7: README e validação manual
 
 **Files:**
 - Modify: `README.md`
@@ -485,10 +627,16 @@ git commit -m "docs: README cobre /lancar e comandos de intervalo"
 - Conteúdo decidido por dia + atalho "mesma em todos" → Task 5 (passo 4). ✅
 - Defaults `Time IA`/`Célula de Inovação`/não-faturável + overrides → reuso de `build_payload`; Task 5 passo 4. ✅
 - Escrita multi-data → reuso de `add` (Task 5 passos 6-7). ✅
-- Anti-duplicata por intervalo → Tasks 3 (`get_entries_for_range`), 4 (`entries --start/--end`), 5 (passo 3). ✅
-- Dry-run obrigatório → Task 5 passos 6-7. ✅
+- Anti-duplicata por intervalo → Tasks 3 (`get_entries_for_range`), 4 (`entries --start/--end`), 6 (passo 3). ✅
+- Dry-run obrigatório → Task 6 passos 6-7. ✅
 - Período inválido (start>end) → Task 1 (`ValueError`). ✅
-- Feriados não automatizados → poda manual, Task 5 passo 2 (consistente com spec). ✅
+- Feriados não automatizados → poda manual, Task 6 passo 2 (consistente com spec). ✅
+
+**Correções pós plan-critic (Gate 1):**
+- W1 → Task 5: `add` reporta progresso e para limpo em falha parcial (retorna ≠ 0, diz "gravou N de M"). Crucial pro mês inteiro.
+- W4 → Task 4: adicionados testes de borda de meia-noite e intervalo vazio.
+- W3 → documentado no `/lancar` (Task 6): dedupe vive no passo 3 + omissão manual; sem trava no `add`.
+- N9 → Task 4: tipagem `dict[str, list[dict[str, Any]]]` (evita surpresa no pyright).
 
 **2. Placeholder scan:** sem TBD/TODO; todo passo de código traz o código real.
 
