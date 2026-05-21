@@ -3,8 +3,12 @@ import json
 import sys
 from datetime import date, datetime
 from pathlib import Path
+from typing import Any
 from zoneinfo import ZoneInfo
 
+import httpx
+
+from clockify_horas.bizdays import business_days
 from clockify_horas.clockify_api import ClockifyClient
 from clockify_horas.config import load_config
 from clockify_horas.entries import build_payload
@@ -47,11 +51,35 @@ def _cmd_meta(args: argparse.Namespace) -> int:
 
 
 def _cmd_entries(args: argparse.Namespace) -> int:
-    """Lista lançamentos já existentes no dia — usado pelo /horas p/ anti-duplicata."""
+    """Lista lançamentos existentes — um dia (--date) ou intervalo (--start/--end).
+
+    --date: imprime lista do dia. Intervalo: imprime objeto agrupado por data local.
+    """
+    if not args.date and not (args.start and args.end):
+        print("erro: informe --date OU --start e --end", file=sys.stderr)
+        return 2
+
     cfg = load_config()
-    target = date.fromisoformat(args.date) if args.date else date.today()
     client = ClockifyClient(cfg.api_key, cfg.workspace_id)
     user_id = client.get_user_id()
+
+    if args.start and args.end:
+        existentes = client.get_entries_for_range(
+            user_id, date.fromisoformat(args.start), date.fromisoformat(args.end), _TZ
+        )
+        por_data: dict[str, list[dict[str, Any]]] = {}
+        for e in existentes:
+            ini = e.get("timeInterval", {}).get("start")
+            if not ini:
+                continue
+            local_date = datetime.fromisoformat(ini.replace("Z", "+00:00")).astimezone(_TZ).date()
+            por_data.setdefault(local_date.isoformat(), []).append(
+                {"id": e.get("id"), "description": e.get("description"), "start": ini}
+            )
+        print(json.dumps(por_data, ensure_ascii=False, indent=2))
+        return 0
+
+    target = date.fromisoformat(args.date) if args.date else date.today()
     existentes = client.get_entries_for_date(user_id, target, _TZ)
     resumo = [
         {
@@ -63,6 +91,12 @@ def _cmd_entries(args: argparse.Namespace) -> int:
         for e in existentes
     ]
     print(json.dumps(resumo, ensure_ascii=False, indent=2))
+    return 0
+
+
+def _cmd_business_days(args: argparse.Namespace) -> int:
+    dias = business_days(date.fromisoformat(args.start), date.fromisoformat(args.end))
+    print(json.dumps([d.isoformat() for d in dias], ensure_ascii=False, indent=2))
     return 0
 
 
@@ -88,8 +122,22 @@ def _cmd_add(args: argparse.Namespace) -> int:
         print(json.dumps(payloads, ensure_ascii=False, indent=2))
         return 0
 
-    for p in payloads:
-        resp = client.create_entry(p)
+    gravados: list[Any] = []
+    for i, p in enumerate(payloads, start=1):
+        try:
+            resp = client.create_entry(p)
+        except httpx.HTTPError as e:
+            desc = p["description"]
+            print(
+                f"FALHA no item {i}/{len(payloads)} ({desc} @ {p['start']}): {e}", file=sys.stderr
+            )
+            print(
+                f"Gravados com sucesso antes da falha: {len(gravados)}/{len(payloads)}. "
+                f"Reexecute apenas os itens restantes para evitar duplicata.",
+                file=sys.stderr,
+            )
+            return 1
+        gravados.append(resp.get("id"))
         print(f"Lançado: {p['description']} -> {resp.get('id')}")
     return 0
 
@@ -105,9 +153,16 @@ def build_parser() -> argparse.ArgumentParser:
     p_meta = sub.add_parser("meta", help="Lista projetos/tarefas/tags do workspace")
     p_meta.set_defaults(func=_cmd_meta)
 
-    p_entries = sub.add_parser("entries", help="Lista lançamentos existentes no dia")
-    p_entries.add_argument("--date", help="AAAA-MM-DD (default: hoje)")
+    p_entries = sub.add_parser("entries", help="Lista lançamentos (--date OU --start/--end)")
+    p_entries.add_argument("--date", help="AAAA-MM-DD (um dia)")
+    p_entries.add_argument("--start", help="AAAA-MM-DD (início do intervalo)")
+    p_entries.add_argument("--end", help="AAAA-MM-DD (fim do intervalo)")
     p_entries.set_defaults(func=_cmd_entries)
+
+    p_bd = sub.add_parser("business-days", help="Lista dias úteis (seg–sex) de um intervalo")
+    p_bd.add_argument("--start", required=True, help="AAAA-MM-DD")
+    p_bd.add_argument("--end", required=True, help="AAAA-MM-DD")
+    p_bd.set_defaults(func=_cmd_business_days)
 
     p_add = sub.add_parser("add", help="Cria lançamentos a partir de um JSON")
     p_add.add_argument("--file", required=True, help="Arquivo JSON com a lista de lançamentos")

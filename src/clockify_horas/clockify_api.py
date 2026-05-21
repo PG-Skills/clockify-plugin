@@ -79,6 +79,25 @@ class ClockifyClient:
             },
         )
 
+    def get_entries_for_range(
+        self, user_id: str, start: date, end: date, tz: ZoneInfo
+    ) -> list[dict[str, Any]]:
+        """Lançamentos do usuário no intervalo de dias locais [start, end] (inclusive).
+
+        Janela: 00:00 local de ``start`` até 00:00 local do dia seguinte a ``end``,
+        convertida para instantes UTC. page-size alto para cobrir um mês numa chamada.
+        """
+        win_start = datetime.combine(start, time.min, tzinfo=tz).astimezone(UTC)
+        win_end = datetime.combine(end + timedelta(days=1), time.min, tzinfo=tz).astimezone(UTC)
+        return self._get(
+            f"/workspaces/{self.workspace_id}/user/{user_id}/time-entries",
+            params={
+                "start": win_start.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "end": win_end.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "page-size": 1000,
+            },
+        )
+
     def create_entry(self, payload: dict[str, Any]) -> dict[str, Any]:
         resp = self._client.post(f"/workspaces/{self.workspace_id}/time-entries", json=payload)
         resp.raise_for_status()

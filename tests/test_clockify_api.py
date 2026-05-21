@@ -80,3 +80,16 @@ def test_create_entry_envia_payload():
     assert route.called
     sent = route.calls.last.request
     assert sent.headers["X-Api-Key"] == "key123"
+
+
+@respx.mock
+def test_get_entries_for_range_usa_janela_utc():
+    route = respx.get(f"{BASE}/workspaces/ws1/user/u1/time-entries").mock(
+        return_value=httpx.Response(200, json=[{"id": "e1"}])
+    )
+    entries = _client().get_entries_for_range("u1", date(2026, 5, 1), date(2026, 5, 7), TZ)
+    assert entries == [{"id": "e1"}]
+    sent = route.calls.last.request
+    assert sent.url.params["start"] == "2026-05-01T03:00:00Z"
+    assert sent.url.params["end"] == "2026-05-08T03:00:00Z"
+    assert sent.url.params["page-size"] == "1000"
