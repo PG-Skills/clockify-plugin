@@ -32,3 +32,28 @@ def test_parse_ics_preserva_horarios(sample_ics):
 def test_parse_ics_dia_sem_ocorrencia_retorna_vazio(sample_ics):
     # 2026-01-30 é sexta: sem ocorrência da recorrência (seg/qua) e sem eventos avulsos.
     assert parse_ics(sample_ics, target_date=date(2026, 1, 30), tz=TZ) == []
+
+
+import httpx
+import respx
+
+from clockify_horas.ics import fetch_ics
+
+
+@respx.mock
+def test_fetch_ics_baixa_conteudo(sample_ics):
+    url = "https://outlook.example.com/cal.ics"
+    respx.get(url).mock(return_value=httpx.Response(200, text=sample_ics))
+    assert "VCALENDAR" in fetch_ics(url)
+
+
+@respx.mock
+def test_fetch_ics_erro_http_levanta():
+    url = "https://outlook.example.com/cal.ics"
+    respx.get(url).mock(return_value=httpx.Response(404))
+    try:
+        fetch_ics(url)
+    except httpx.HTTPStatusError:
+        pass
+    else:
+        raise AssertionError("esperava HTTPStatusError")

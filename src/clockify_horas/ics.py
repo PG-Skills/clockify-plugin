@@ -1,10 +1,18 @@
 from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
+import httpx
 import recurring_ical_events
 from icalendar import Calendar
 
 from clockify_horas.models import CalEvent
+
+
+def fetch_ics(url: str, timeout: float = 30.0) -> str:
+    """Baixa o conteúdo bruto do ICS publicado. Levanta em status HTTP de erro."""
+    resp = httpx.get(url, timeout=timeout, follow_redirects=True)
+    resp.raise_for_status()
+    return resp.text
 
 
 def parse_ics(ics_text: str, target_date: date, tz: ZoneInfo) -> list[CalEvent]:
