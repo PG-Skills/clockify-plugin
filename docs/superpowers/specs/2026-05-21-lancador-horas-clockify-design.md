@@ -62,7 +62,7 @@ clockify.py (I/O)
    add    → cria lançamentos via API REST
    │
    ├─ Outlook ICS (read-only)
-   └─ Clockify API (api.clockify.me/v1)
+   └─ Clockify API (api.clockify.me/api/v1)
 ```
 
 ## Componentes

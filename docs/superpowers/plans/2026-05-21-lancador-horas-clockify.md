@@ -390,7 +390,7 @@ def _to_local(dt: datetime, tz: ZoneInfo) -> datetime:
 - [ ] **Step 5: Rodar para confirmar PASS**
 
 Run: `uv run pytest tests/test_ics.py -v`
-Expected: PASS — 3 passed.
+Expected: PASS — 4 passed.
 
 - [ ] **Step 6: Commit**
 
@@ -457,7 +457,7 @@ def fetch_ics(url: str, timeout: float = 30.0) -> str:
 - [ ] **Step 4: Rodar para confirmar PASS**
 
 Run: `uv run pytest tests/test_ics.py -v`
-Expected: PASS — 5 passed.
+Expected: PASS — 6 passed.
 
 - [ ] **Step 5: Commit**
 
