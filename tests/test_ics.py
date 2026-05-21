@@ -1,7 +1,10 @@
 from datetime import date
 from zoneinfo import ZoneInfo
 
-from clockify_horas.ics import parse_ics
+import httpx
+import respx
+
+from clockify_horas.ics import fetch_ics, parse_ics
 
 TZ = ZoneInfo("America/Sao_Paulo")
 
@@ -34,10 +37,7 @@ def test_parse_ics_dia_sem_ocorrencia_retorna_vazio(sample_ics):
     assert parse_ics(sample_ics, target_date=date(2026, 1, 30), tz=TZ) == []
 
 
-import httpx
-import respx
 
-from clockify_horas.ics import fetch_ics
 
 
 @respx.mock

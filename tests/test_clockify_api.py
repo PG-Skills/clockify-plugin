@@ -3,6 +3,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 import respx
+
 from clockify_horas.clockify_api import ClockifyClient
 
 BASE = "https://api.clockify.me/api/v1"

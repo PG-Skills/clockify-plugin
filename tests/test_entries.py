@@ -2,6 +2,8 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import pytest
+
+from clockify_horas.config import Defaults
 from clockify_horas.entries import (
     build_payload,
     day_total_hours,
@@ -9,8 +11,6 @@ from clockify_horas.entries import (
     target_warning,
     to_utc_iso,
 )
-
-from clockify_horas.config import Defaults
 from clockify_horas.models import CalEvent, Metadata, TimeEntry
 
 TZ = ZoneInfo("America/Sao_Paulo")
