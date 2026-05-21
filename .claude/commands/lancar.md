@@ -15,13 +15,18 @@ para ler (uso típico: retroativo). Conduza em português, um passo de cada vez:
 3. **Anti-duplicata.** Rode `uv run clockify-horas entries --start <ini> --end <fim>`.
    Para cada dia que JÁ tem lançamento, AVISE e pergunte se pula ou soma.
 
-4. **Ditar atividades.** Pergunte o que lançar. Aceite dois modos:
-   - "mesma atividade em todos os dias restantes" → clone a mesma descrição + horários
-     em cada dia ainda ativo;
-   - por dia → o usuário dita descrição + início/fim de cada dia.
-   Aplique os defaults de `defaults.json` (tarefa `Time IA`, tag `Célula de Inovação`,
-   não-faturável). Aceite overrides de tarefa/etiqueta/faturável; valide nomes fora do
-   default contra `uv run clockify-horas meta`.
+4. **Ditar atividades — SEMPRE puxando do Outlook primeiro, dia a dia.** Para CADA dia
+   selecionado, na ordem:
+   a. Rode `uv run clockify-horas agenda --date <dia>` para puxar as reuniões daquele dia.
+   b. MOSTRE ao usuário as reuniões do dia como lançamentos candidatos (descrição = título,
+      horário real, defaults `Time IA` / `Célula de Inovação` / não-faturável aplicados).
+   c. PERGUNTE: confirma essas reuniões? O que mais fez no dia (trabalho avulso, com
+      horários)? Algum item é de outro projeto/tarefa/tag/faturável?
+   Só depois de fechar o dia, passe ao próximo. Atalho: o usuário pode dizer "mesma coisa
+   nos próximos dias" para clonar.
+   Aplique os defaults de `defaults.json`. Para itens fora do default, valide o nome da
+   tarefa/etiqueta contra `uv run clockify-horas meta` e ajuste a tag correlata
+   (ex: projeto de cliente AMS → tag `AMS`).
 
 5. **Revisão.** Mostre uma tabela por dia (data, descrição, horário, tarefa, tag,
    faturável, duração) e o total de horas por dia. Avise dias fora de ~8h (não bloqueie).
