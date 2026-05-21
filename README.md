@@ -2,6 +2,11 @@
 
 Lançador de horas Clockify a partir da agenda do Outlook (ICS), operado via `/horas`.
 
+## Pré-requisitos
+
+- Python 3.12+ e [uv](https://docs.astral.sh/uv/)
+- Conta Clockify (API key) e calendário do Outlook publicado como ICS
+
 ## Setup
 
 1. `uv sync`
@@ -27,3 +32,27 @@ uv run clockify-horas business-days --start 2026-05-01 --end 2026-05-31
 uv run clockify-horas entries --start 2026-05-01 --end 2026-05-31
 uv run clockify-horas add --file lancamentos.json --dry-run
 ```
+
+## Estrutura
+
+```
+src/clockify_horas/
+  cli.py           # subcomandos: agenda, meta, entries, business-days, add
+  ics.py           # fetch + parse ICS (expande recorrências)
+  clockify_api.py  # client HTTP da API Clockify
+  entries.py       # lógica pura (payload, totais, UTC)
+  bizdays.py       # dias úteis de um intervalo
+  config.py        # .env + defaults.json
+  models.py        # dataclasses
+.claude/commands/  # /horas e /lancar
+tests/             # pytest + respx (sem chamadas reais)
+```
+
+## Dev
+
+```bash
+uv run pytest -q       # testes
+uv run ruff check .    # lint
+uv run pyright         # type check
+```
+
