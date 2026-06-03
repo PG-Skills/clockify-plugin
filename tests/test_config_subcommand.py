@@ -1,7 +1,33 @@
 import json
 
+import httpx
+import respx
+
 from clockify_horas.cli import main
 from clockify_horas.config import config_path
+
+BASE = "https://api.clockify.me/api/v1"
+
+
+def _seed_config():
+    """Config completa (defaults inclusos) para o doctor exercitar todas as ramificações."""
+    main(
+        [
+            "config",
+            "set",
+            "--api-key",
+            "K",
+            "--workspace-id",
+            "W",
+            "--task",
+            "T",
+            "--tag",
+            "G",
+            "--no-billable",
+            "--daily-target",
+            "8",
+        ]
+    )
 
 
 def test_config_set_cria_e_atualiza(monkeypatch, tmp_path):
@@ -95,3 +121,63 @@ def test_config_add_override(monkeypatch, tmp_path):
             "billable": True,
         }
     ]
+
+
+@respx.mock
+def test_config_doctor_ok(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    monkeypatch.chdir(tmp_path)  # sem o .env do repo no cwd (hermético)
+    for var in ("CLOCKIFY_API_KEY", "CLOCKIFY_WORKSPACE_ID", "OUTLOOK_ICS_URL"):
+        monkeypatch.delenv(var, raising=False)
+    _seed_config()
+    respx.get(f"{BASE}/workspaces").mock(
+        return_value=httpx.Response(200, json=[{"id": "W", "name": "Meu WS"}])
+    )
+    respx.get(f"{BASE}/user").mock(return_value=httpx.Response(200, json={"id": "U"}))
+    respx.get(f"{BASE}/workspaces/W/projects").mock(
+        return_value=httpx.Response(200, json=[{"id": "P", "name": "Proj"}])
+    )
+    respx.get(f"{BASE}/workspaces/W/projects/P/tasks").mock(
+        return_value=httpx.Response(200, json=[{"id": "TID", "name": "T"}])
+    )
+    respx.get(f"{BASE}/workspaces/W/tags").mock(
+        return_value=httpx.Response(200, json=[{"id": "GID", "name": "G"}])
+    )
+    rc = main(["config", "doctor"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "OK: API key e workspace válidos." in out
+    assert "OK: tarefa default 'T' existe." in out
+    assert "OK: etiqueta default 'G' existe." in out
+
+
+@respx.mock
+def test_config_doctor_ics_ok(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    monkeypatch.chdir(tmp_path)
+    for var in ("CLOCKIFY_API_KEY", "CLOCKIFY_WORKSPACE_ID", "OUTLOOK_ICS_URL"):
+        monkeypatch.delenv(var, raising=False)
+    _seed_config()
+    main(["config", "set", "--ics-url", "https://x/cal.ics"])
+    respx.get(f"{BASE}/workspaces").mock(return_value=httpx.Response(200, json=[{"id": "W"}]))
+    respx.get(f"{BASE}/user").mock(return_value=httpx.Response(200, json={"id": "U"}))
+    respx.get(f"{BASE}/workspaces/W/projects").mock(return_value=httpx.Response(200, json=[]))
+    respx.get(f"{BASE}/workspaces/W/tags").mock(return_value=httpx.Response(200, json=[]))
+    respx.head("https://x/cal.ics").mock(return_value=httpx.Response(200))
+    rc = main(["config", "doctor"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "OK: link ICS acessível." in out
+
+
+@respx.mock
+def test_config_doctor_key_invalida(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    monkeypatch.chdir(tmp_path)
+    for var in ("CLOCKIFY_API_KEY", "CLOCKIFY_WORKSPACE_ID", "OUTLOOK_ICS_URL"):
+        monkeypatch.delenv(var, raising=False)
+    _seed_config()
+    respx.get(f"{BASE}/workspaces").mock(return_value=httpx.Response(401))
+    rc = main(["config", "doctor"])
+    assert rc == 1
+    assert "FAIL" in capsys.readouterr().out

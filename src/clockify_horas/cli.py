@@ -13,6 +13,7 @@ from clockify_horas.clockify_api import ClockifyClient
 from clockify_horas.config import (
     config_path,
     load_config,
+    load_defaults,
     read_raw,
     write_raw,
 )
@@ -205,6 +206,55 @@ def _cmd_config_add_override(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_config_doctor(args: argparse.Namespace) -> int:
+    if not read_raw():
+        print("FAIL: sem config. Rode /clockify-setup.")
+        return 1
+    try:
+        # use_dotenv=False: o doctor valida o config XDG + env, sem puxar um .env de cwd.
+        cfg = load_config(use_dotenv=False)
+    except ValueError as e:
+        print(f"FAIL: {e}")
+        return 1
+
+    client = ClockifyClient(cfg.api_key, cfg.workspace_id)
+    try:
+        ids = {w["id"] for w in client.list_workspaces()}
+    except httpx.HTTPStatusError as e:
+        print(f"FAIL: API key inválida ou sem acesso (HTTP {e.response.status_code}).")
+        return 1
+    if cfg.workspace_id in ids:
+        print("OK: API key e workspace válidos.")
+    else:
+        print(f"FAIL: workspace '{cfg.workspace_id}' não está entre os seus workspaces.")
+        return 1
+
+    try:
+        d = load_defaults()
+        md = client.get_metadata()
+        task_names = {name for (_pid, name) in md.tasks}
+        if d.task_name in task_names:
+            print(f"OK: tarefa default '{d.task_name}' existe.")
+        else:
+            print(f"WARN: tarefa default '{d.task_name}' não encontrada no workspace.")
+        if d.tag_name in md.tags:
+            print(f"OK: etiqueta default '{d.tag_name}' existe.")
+        else:
+            print(f"WARN: etiqueta default '{d.tag_name}' não encontrada.")
+    except ValueError:
+        print("WARN: defaults ainda não configurados.")
+
+    if cfg.ics_url:
+        try:
+            httpx.head(cfg.ics_url, timeout=10.0, follow_redirects=True).raise_for_status()
+            print("OK: link ICS acessível.")
+        except httpx.HTTPError:
+            print("WARN: link ICS não respondeu (necessário só para /horas).")
+    else:
+        print("WARN: ICS não configurado (necessário só para /horas).")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="clockify-horas")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -263,6 +313,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     ovr_bill.add_argument("--no-billable", dest="billable", action="store_const", const=False)
     p_ovr.set_defaults(func=_cmd_config_add_override)
+
+    p_doc = config_sub.add_parser("doctor", help="Valida a config contra a API")
+    p_doc.set_defaults(func=_cmd_config_doctor)
 
     return parser
 
