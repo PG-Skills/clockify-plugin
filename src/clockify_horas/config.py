@@ -5,6 +5,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+APP_DIR = "clockify-horas"
+
 
 @dataclass
 class Config:
@@ -19,6 +21,44 @@ class Defaults:
     tag_name: str
     billable: bool
     daily_target_hours: float
+
+
+@dataclass
+class Override:
+    match: str
+    task_name: str
+    tag_name: str
+    billable: bool
+
+
+def config_path() -> Path:
+    """Local da config por SO. ``$XDG_CONFIG_HOME`` tem prioridade em qualquer SO
+    (usado para isolar testes); no Windows usa ``%APPDATA%``; senão ``~/.config``.
+    """
+    base = os.getenv("XDG_CONFIG_HOME")
+    if base:
+        root = Path(base)
+    elif os.name == "nt" and os.getenv("APPDATA"):
+        root = Path(os.environ["APPDATA"])
+    else:
+        root = Path.home() / ".config"
+    return root / APP_DIR / "config.json"
+
+
+def read_raw(path: Path | None = None) -> dict:
+    p = path or config_path()
+    if not p.exists():
+        return {}
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
+def write_raw(data: dict, path: Path | None = None) -> Path:
+    p = path or config_path()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    if os.name == "posix":  # chmod 600 é POSIX-only
+        p.chmod(0o600)
+    return p
 
 
 _REQUIRED = ("CLOCKIFY_API_KEY", "CLOCKIFY_WORKSPACE_ID", "OUTLOOK_ICS_URL")

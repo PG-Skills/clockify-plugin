@@ -46,3 +46,31 @@ def test_load_defaults_le_json(tmp_path):
         billable=False,
         daily_target_hours=8.0,
     )
+
+
+def test_config_path_respeita_xdg(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    from clockify_horas.config import config_path
+
+    assert config_path() == tmp_path / "clockify-horas" / "config.json"
+
+
+def test_write_raw_cria_arquivo(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    import os
+    import stat
+
+    from clockify_horas.config import config_path, read_raw, write_raw
+
+    p = write_raw({"defaults": {"task_name": "X"}})
+    assert p == config_path()
+    assert read_raw() == {"defaults": {"task_name": "X"}}
+    if os.name == "posix":  # chmod 600 é POSIX-only; no Windows é no-op
+        assert stat.S_IMODE(p.stat().st_mode) == 0o600
+
+
+def test_read_raw_ausente_retorna_vazio(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    from clockify_horas.config import read_raw
+
+    assert read_raw() == {}
