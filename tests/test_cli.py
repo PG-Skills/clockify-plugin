@@ -146,10 +146,22 @@ def test_entries_intervalo_agrupa_por_data(monkeypatch, capsys):
         return_value=httpx.Response(
             200,
             json=[
-                {"id": "e1", "description": "Dev",
-                 "timeInterval": {"start": "2026-05-04T12:00:00Z", "end": "2026-05-04T21:00:00Z"}},
-                {"id": "e2", "description": "Reunião",
-                 "timeInterval": {"start": "2026-05-05T13:00:00Z", "end": "2026-05-05T14:00:00Z"}},
+                {
+                    "id": "e1",
+                    "description": "Dev",
+                    "timeInterval": {
+                        "start": "2026-05-04T12:00:00Z",
+                        "end": "2026-05-04T21:00:00Z",
+                    },
+                },
+                {
+                    "id": "e2",
+                    "description": "Reunião",
+                    "timeInterval": {
+                        "start": "2026-05-05T13:00:00Z",
+                        "end": "2026-05-05T14:00:00Z",
+                    },
+                },
             ],
         )
     )
@@ -175,8 +187,14 @@ def test_entries_intervalo_borda_meia_noite(monkeypatch, capsys):
         return_value=httpx.Response(
             200,
             json=[
-                {"id": "e1", "description": "Tarde do dia 7",
-                 "timeInterval": {"start": "2026-05-08T02:00:00Z", "end": "2026-05-08T02:30:00Z"}},
+                {
+                    "id": "e1",
+                    "description": "Tarde do dia 7",
+                    "timeInterval": {
+                        "start": "2026-05-08T02:00:00Z",
+                        "end": "2026-05-08T02:30:00Z",
+                    },
+                },
             ],
         )
     )
@@ -218,12 +236,22 @@ def test_add_para_limpo_na_falha_parcial(monkeypatch, capsys, tmp_path):
     entries_file.write_text(
         json.dumps(
             [
-                {"description": "Dia 1", "start": "2026-05-04T09:00:00-03:00",
-                 "end": "2026-05-04T10:00:00-03:00", "task_name": "Time IA",
-                 "tag_names": ["Célula de Inovação"], "billable": False},
-                {"description": "Dia 2", "start": "2026-05-05T09:00:00-03:00",
-                 "end": "2026-05-05T10:00:00-03:00", "task_name": "Time IA",
-                 "tag_names": ["Célula de Inovação"], "billable": False},
+                {
+                    "description": "Dia 1",
+                    "start": "2026-05-04T09:00:00-03:00",
+                    "end": "2026-05-04T10:00:00-03:00",
+                    "task_name": "Time IA",
+                    "tag_names": ["Célula de Inovação"],
+                    "billable": False,
+                },
+                {
+                    "description": "Dia 2",
+                    "start": "2026-05-05T09:00:00-03:00",
+                    "end": "2026-05-05T10:00:00-03:00",
+                    "task_name": "Time IA",
+                    "tag_names": ["Célula de Inovação"],
+                    "billable": False,
+                },
             ]
         ),
         encoding="utf-8",
@@ -232,3 +260,19 @@ def test_add_para_limpo_na_falha_parcial(monkeypatch, capsys, tmp_path):
     assert rc == 1
     err = capsys.readouterr().err
     assert "1/2" in err
+
+
+def test_agenda_sem_ics_erro(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    # ICS explicitamente VAZIO ("") — NÃO delenv. `_cmd_agenda` usa load_config(use_dotenv=True),
+    # e o load_dotenv() faz descoberta de .env baseada em FRAME (sobe de src/clockify_horas/ até
+    # a raiz do repo), repopulando a var se ela estiver AUSENTE. Com a var presente e vazia,
+    # override=False não a sobrescreve → o guard de ICS dispara de forma hermética em qualquer SO.
+    monkeypatch.setenv("OUTLOOK_ICS_URL", "")
+    monkeypatch.setenv("CLOCKIFY_API_KEY", "k")
+    monkeypatch.setenv("CLOCKIFY_WORKSPACE_ID", "w")
+    from clockify_horas.cli import main
+
+    rc = main(["agenda", "--date", "2026-05-01"])
+    assert rc == 2
+    assert "ICS" in capsys.readouterr().err

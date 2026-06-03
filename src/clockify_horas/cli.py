@@ -32,6 +32,12 @@ def _parse_local(value: str) -> datetime:
 
 def _cmd_agenda(args: argparse.Namespace) -> int:
     cfg = load_config()
+    if not cfg.ics_url:
+        print(
+            "erro: ICS não configurado. Rode /clockify-setup para o fluxo do Outlook.",
+            file=sys.stderr,
+        )
+        return 2
     target = date.fromisoformat(args.date) if args.date else date.today()
     eventos = parse_ics(fetch_ics(cfg.ics_url), target_date=target, tz=_TZ)
     payload = [
