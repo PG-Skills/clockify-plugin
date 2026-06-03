@@ -88,11 +88,27 @@ def load_config(use_dotenv: bool = True, path: Path | None = None) -> Config:
     return Config(api_key=api_key, workspace_id=workspace_id, ics_url=ics_url)
 
 
-def load_defaults(path: Path | str = "defaults.json") -> Defaults:
-    data = json.loads(Path(path).read_text(encoding="utf-8"))
-    return Defaults(
-        task_name=data["task_name"],
-        tag_name=data["tag_name"],
-        billable=bool(data["billable"]),
-        daily_target_hours=float(data["daily_target_hours"]),
-    )
+def load_defaults(path: Path | None = None) -> Defaults:
+    d = read_raw(path).get("defaults", {})
+    try:
+        return Defaults(
+            task_name=d["task_name"],
+            tag_name=d["tag_name"],
+            billable=bool(d["billable"]),
+            daily_target_hours=float(d["daily_target_hours"]),
+        )
+    except KeyError as e:
+        raise ValueError(f"defaults incompletos no config ({e}). Rode /clockify-setup.") from e
+
+
+def load_overrides(path: Path | None = None) -> list[Override]:
+    raw = read_raw(path).get("overrides", [])
+    return [
+        Override(
+            match=o["match"],
+            task_name=o["task_name"],
+            tag_name=o["tag_name"],
+            billable=bool(o["billable"]),
+        )
+        for o in raw
+    ]

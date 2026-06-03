@@ -1,28 +1,5 @@
-import json
 
 from clockify_horas.config import Defaults, load_config, load_defaults
-
-
-def test_load_defaults_le_json(tmp_path):
-    p = tmp_path / "defaults.json"
-    p.write_text(
-        json.dumps(
-            {
-                "task_name": ".Célula de Inovação: Time IA",
-                "tag_name": "Atividades Internas",
-                "billable": False,
-                "daily_target_hours": 8.0,
-            }
-        ),
-        encoding="utf-8",
-    )
-    d = load_defaults(p)
-    assert d == Defaults(
-        task_name=".Célula de Inovação: Time IA",
-        tag_name="Atividades Internas",
-        billable=False,
-        daily_target_hours=8.0,
-    )
 
 
 def test_load_config_env_tem_precedencia(monkeypatch, tmp_path):
@@ -101,3 +78,73 @@ def test_read_raw_ausente_retorna_vazio(monkeypatch, tmp_path):
     from clockify_horas.config import read_raw
 
     assert read_raw() == {}
+
+
+def test_load_defaults_do_config(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    from clockify_horas.config import write_raw
+
+    write_raw(
+        {
+            "defaults": {
+                "task_name": "Time IA",
+                "tag_name": "Atividades Internas",
+                "billable": False,
+                "daily_target_hours": 8.0,
+            }
+        }
+    )
+    d = load_defaults()
+    assert d == Defaults(
+        task_name="Time IA",
+        tag_name="Atividades Internas",
+        billable=False,
+        daily_target_hours=8.0,
+    )
+
+
+def test_load_defaults_incompleto_levanta(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    from clockify_horas.config import write_raw
+
+    write_raw({"defaults": {"task_name": "Só isso"}})
+    try:
+        load_defaults()
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("esperava ValueError")
+
+
+def test_load_overrides(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    from clockify_horas.config import Override, load_overrides, write_raw
+
+    write_raw(
+        {
+            "overrides": [
+                {
+                    "match": "San Pablo",
+                    "task_name": "Assinatura",
+                    "tag_name": "Implantação",
+                    "billable": True,
+                }
+            ]
+        }
+    )
+    assert load_overrides() == [
+        Override(
+            match="San Pablo",
+            task_name="Assinatura",
+            tag_name="Implantação",
+            billable=True,
+        )
+    ]
+
+
+def test_load_overrides_vazio(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    from clockify_horas.config import load_overrides, write_raw
+
+    write_raw({})
+    assert load_overrides() == []
