@@ -11,6 +11,7 @@ import httpx
 from clockify_horas.bizdays import business_days
 from clockify_horas.clockify_api import ClockifyClient
 from clockify_horas.config import (
+    config_path,
     load_config,
     read_raw,
     write_raw,
@@ -171,6 +172,23 @@ def _cmd_config_set(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_config_path(args: argparse.Namespace) -> int:
+    print(str(config_path()))
+    return 0
+
+
+def _cmd_config_show(args: argparse.Namespace) -> int:
+    data = read_raw()
+    if not data:
+        print("Sem config. Rode /clockify-setup.", file=sys.stderr)
+        return 1
+    red = json.loads(json.dumps(data))
+    if red.get("clockify", {}).get("api_key"):
+        red["clockify"]["api_key"] = "***"
+    print(json.dumps(red, ensure_ascii=False, indent=2))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="clockify-horas")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -212,6 +230,12 @@ def build_parser() -> argparse.ArgumentParser:
     bill.add_argument("--billable", dest="billable", action="store_const", const=True, default=None)
     bill.add_argument("--no-billable", dest="billable", action="store_const", const=False)
     p_set.set_defaults(func=_cmd_config_set)
+
+    p_path = config_sub.add_parser("path", help="Imprime o caminho do arquivo de config")
+    p_path.set_defaults(func=_cmd_config_path)
+
+    p_show = config_sub.add_parser("show", help="Imprime a config (api_key redigida)")
+    p_show.set_defaults(func=_cmd_config_show)
 
     return parser
 
