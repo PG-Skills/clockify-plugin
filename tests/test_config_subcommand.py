@@ -68,3 +68,30 @@ def test_config_show_sem_config_erro(monkeypatch, tmp_path, capsys):
     rc = main(["config", "show"])
     assert rc == 1
     assert "clockify-setup" in capsys.readouterr().err
+
+
+def test_config_add_override(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    rc = main(
+        [
+            "config",
+            "add-override",
+            "--match",
+            "San Pablo",
+            "--task",
+            "Assinatura",
+            "--tag",
+            "Implantação",
+            "--billable",
+        ]
+    )
+    assert rc == 0
+    data = json.loads(config_path().read_text(encoding="utf-8"))
+    assert data["overrides"] == [
+        {
+            "match": "San Pablo",
+            "task_name": "Assinatura",
+            "tag_name": "Implantação",
+            "billable": True,
+        }
+    ]

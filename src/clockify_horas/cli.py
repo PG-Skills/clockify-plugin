@@ -189,6 +189,22 @@ def _cmd_config_show(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_config_add_override(args: argparse.Namespace) -> int:
+    data = read_raw()
+    ov = data.setdefault("overrides", [])
+    ov.append(
+        {
+            "match": args.match,
+            "task_name": args.task,
+            "tag_name": args.tag,
+            "billable": bool(args.billable) if args.billable is not None else False,
+        }
+    )
+    p = write_raw(data)
+    print(f"Override adicionado ({args.match}): {p}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="clockify-horas")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -236,6 +252,17 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_show = config_sub.add_parser("show", help="Imprime a config (api_key redigida)")
     p_show.set_defaults(func=_cmd_config_show)
+
+    p_ovr = config_sub.add_parser("add-override", help="Adiciona regra de override por cliente")
+    p_ovr.add_argument("--match", required=True, help="Palavra-chave do cliente/projeto")
+    p_ovr.add_argument("--task", required=True)
+    p_ovr.add_argument("--tag", required=True)
+    ovr_bill = p_ovr.add_mutually_exclusive_group()
+    ovr_bill.add_argument(
+        "--billable", dest="billable", action="store_const", const=True, default=None
+    )
+    ovr_bill.add_argument("--no-billable", dest="billable", action="store_const", const=False)
+    p_ovr.set_defaults(func=_cmd_config_add_override)
 
     return parser
 
