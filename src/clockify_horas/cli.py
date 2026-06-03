@@ -10,7 +10,11 @@ import httpx
 
 from clockify_horas.bizdays import business_days
 from clockify_horas.clockify_api import ClockifyClient
-from clockify_horas.config import load_config
+from clockify_horas.config import (
+    load_config,
+    read_raw,
+    write_raw,
+)
 from clockify_horas.entries import build_payload
 from clockify_horas.ics import fetch_ics, parse_ics
 from clockify_horas.models import TimeEntry
@@ -142,6 +146,31 @@ def _cmd_add(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_config_set(args: argparse.Namespace) -> int:
+    data = read_raw()
+    ck = data.setdefault("clockify", {})
+    ol = data.setdefault("outlook", {})
+    df = data.setdefault("defaults", {})
+    data.setdefault("overrides", [])
+    if args.api_key is not None:
+        ck["api_key"] = args.api_key
+    if args.workspace_id is not None:
+        ck["workspace_id"] = args.workspace_id
+    if args.ics_url is not None:
+        ol["ics_url"] = args.ics_url
+    if args.task is not None:
+        df["task_name"] = args.task
+    if args.tag is not None:
+        df["tag_name"] = args.tag
+    if args.billable is not None:
+        df["billable"] = args.billable
+    if args.daily_target is not None:
+        df["daily_target_hours"] = float(args.daily_target)
+    p = write_raw(data)
+    print(f"Config atualizada: {p}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="clockify-horas")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -168,6 +197,22 @@ def build_parser() -> argparse.ArgumentParser:
     p_add.add_argument("--file", required=True, help="Arquivo JSON com a lista de lançamentos")
     p_add.add_argument("--dry-run", action="store_true", help="Imprime payloads sem postar")
     p_add.set_defaults(func=_cmd_add)
+
+    p_config = sub.add_parser("config", help="Gerencia a config por-usuário")
+    config_sub = p_config.add_subparsers(dest="config_cmd", required=True)
+
+    p_set = config_sub.add_parser("set", help="Define campos da config")
+    p_set.add_argument("--api-key")
+    p_set.add_argument("--workspace-id")
+    p_set.add_argument("--ics-url")
+    p_set.add_argument("--task")
+    p_set.add_argument("--tag")
+    p_set.add_argument("--daily-target")
+    bill = p_set.add_mutually_exclusive_group()
+    bill.add_argument("--billable", dest="billable", action="store_const", const=True, default=None)
+    bill.add_argument("--no-billable", dest="billable", action="store_const", const=False)
+    p_set.set_defaults(func=_cmd_config_set)
+
     return parser
 
 
