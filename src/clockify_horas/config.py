@@ -61,25 +61,31 @@ def write_raw(data: dict, path: Path | None = None) -> Path:
     return p
 
 
-_REQUIRED = ("CLOCKIFY_API_KEY", "CLOCKIFY_WORKSPACE_ID", "OUTLOOK_ICS_URL")
+def load_config(use_dotenv: bool = True, path: Path | None = None) -> Config:
+    """Carrega credenciais. Precedência: variável de ambiente > arquivo de config.
 
-
-def load_config(use_dotenv: bool = True) -> Config:
-    """Carrega credenciais de .env / ambiente. Levanta ValueError se faltar alguma.
-
-    ``use_dotenv=False`` (usado em testes) pula a leitura do arquivo .env, evitando que
-    um .env local repopule variáveis que o teste removeu de propósito.
+    ICS é opcional (só usado pelo subcomando ``agenda``). ``use_dotenv=False`` pula a
+    leitura do .env nos testes.
     """
     if use_dotenv:
         load_dotenv()
-    missing = [k for k in _REQUIRED if not os.getenv(k)]
+    data = read_raw(path)
+    ck = data.get("clockify", {})
+    ol = data.get("outlook", {})
+    api_key = os.getenv("CLOCKIFY_API_KEY") or ck.get("api_key", "")
+    workspace_id = os.getenv("CLOCKIFY_WORKSPACE_ID") or ck.get("workspace_id", "")
+    ics_url = os.getenv("OUTLOOK_ICS_URL") or ol.get("ics_url", "")
+    missing = [
+        name
+        for name, val in (
+            ("CLOCKIFY_API_KEY", api_key),
+            ("CLOCKIFY_WORKSPACE_ID", workspace_id),
+        )
+        if not val
+    ]
     if missing:
-        raise ValueError(f"Variáveis de ambiente faltando: {', '.join(missing)}")
-    return Config(
-        api_key=os.environ["CLOCKIFY_API_KEY"],
-        workspace_id=os.environ["CLOCKIFY_WORKSPACE_ID"],
-        ics_url=os.environ["OUTLOOK_ICS_URL"],
-    )
+        raise ValueError(f"Configuração faltando: {', '.join(missing)}. Rode /clockify-setup.")
+    return Config(api_key=api_key, workspace_id=workspace_id, ics_url=ics_url)
 
 
 def load_defaults(path: Path | str = "defaults.json") -> Defaults:

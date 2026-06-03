@@ -3,29 +3,6 @@ import json
 from clockify_horas.config import Defaults, load_config, load_defaults
 
 
-def test_load_config_le_variaveis(monkeypatch):
-    monkeypatch.setenv("CLOCKIFY_API_KEY", "key123")
-    monkeypatch.setenv("CLOCKIFY_WORKSPACE_ID", "ws1")
-    monkeypatch.setenv("OUTLOOK_ICS_URL", "https://x/cal.ics")
-    cfg = load_config(use_dotenv=False)
-    assert cfg.api_key == "key123"
-    assert cfg.workspace_id == "ws1"
-    assert cfg.ics_url == "https://x/cal.ics"
-
-
-def test_load_config_falta_chave_levanta(monkeypatch):
-    # use_dotenv=False evita que um .env local repopule a chave deletada
-    monkeypatch.delenv("CLOCKIFY_API_KEY", raising=False)
-    monkeypatch.setenv("CLOCKIFY_WORKSPACE_ID", "ws1")
-    monkeypatch.setenv("OUTLOOK_ICS_URL", "https://x/cal.ics")
-    try:
-        load_config(use_dotenv=False)
-    except ValueError as e:
-        assert "CLOCKIFY_API_KEY" in str(e)
-    else:
-        raise AssertionError("esperava ValueError")
-
-
 def test_load_defaults_le_json(tmp_path):
     p = tmp_path / "defaults.json"
     p.write_text(
@@ -46,6 +23,56 @@ def test_load_defaults_le_json(tmp_path):
         billable=False,
         daily_target_hours=8.0,
     )
+
+
+def test_load_config_env_tem_precedencia(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    monkeypatch.setenv("CLOCKIFY_API_KEY", "key123")
+    monkeypatch.setenv("CLOCKIFY_WORKSPACE_ID", "ws1")
+    monkeypatch.setenv("OUTLOOK_ICS_URL", "https://x/cal.ics")
+    cfg = load_config(use_dotenv=False)
+    assert cfg.api_key == "key123"
+    assert cfg.workspace_id == "ws1"
+    assert cfg.ics_url == "https://x/cal.ics"
+
+
+def test_load_config_le_do_arquivo(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    for var in ("CLOCKIFY_API_KEY", "CLOCKIFY_WORKSPACE_ID", "OUTLOOK_ICS_URL"):
+        monkeypatch.delenv(var, raising=False)
+    from clockify_horas.config import write_raw
+
+    write_raw(
+        {
+            "clockify": {"api_key": "fileKey", "workspace_id": "fileWs"},
+            "outlook": {"ics_url": "https://file/cal.ics"},
+        }
+    )
+    cfg = load_config(use_dotenv=False)
+    assert cfg.api_key == "fileKey"
+    assert cfg.workspace_id == "fileWs"
+    assert cfg.ics_url == "https://file/cal.ics"
+
+
+def test_load_config_falta_chave_levanta(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    monkeypatch.delenv("CLOCKIFY_API_KEY", raising=False)
+    monkeypatch.setenv("CLOCKIFY_WORKSPACE_ID", "ws1")
+    try:
+        load_config(use_dotenv=False)
+    except ValueError as e:
+        assert "CLOCKIFY_API_KEY" in str(e)
+    else:
+        raise AssertionError("esperava ValueError")
+
+
+def test_load_config_ics_opcional(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    monkeypatch.delenv("OUTLOOK_ICS_URL", raising=False)
+    monkeypatch.setenv("CLOCKIFY_API_KEY", "k")
+    monkeypatch.setenv("CLOCKIFY_WORKSPACE_ID", "w")
+    cfg = load_config(use_dotenv=False)
+    assert cfg.ics_url == ""
 
 
 def test_config_path_respeita_xdg(monkeypatch, tmp_path):
