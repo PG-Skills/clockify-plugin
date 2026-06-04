@@ -66,6 +66,7 @@ def test_add_dry_run_nao_posta(monkeypatch, capsys, tmp_path):
 
 @respx.mock
 def test_add_real_posta(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
     _setup_env(monkeypatch)
     respx.get(f"{BASE}/user").mock(return_value=httpx.Response(200, json={"id": "u1"}))
     respx.get(f"{BASE}/workspaces/ws1/projects").mock(
@@ -214,6 +215,7 @@ def test_entries_intervalo_vazio(monkeypatch, capsys):
 
 @respx.mock
 def test_add_para_limpo_na_falha_parcial(monkeypatch, capsys, tmp_path):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
     _setup_env(monkeypatch)
     respx.get(f"{BASE}/user").mock(return_value=httpx.Response(200, json={"id": "u1"}))
     respx.get(f"{BASE}/workspaces/ws1/projects").mock(
@@ -385,6 +387,53 @@ def test_add_dry_run_usa_project_name(monkeypatch, tmp_path, capsys):
     payloads = json.loads(capsys.readouterr().out)
     assert payloads[0]["projectId"] == "p2"
     assert payloads[0]["taskId"] == "t2"
+    from clockify_horas.history import suggest_for
+
+    assert suggest_for("x") is None  # dry-run não grava histórico
+
+
+@respx.mock
+def test_add_grava_historico_no_sucesso(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    monkeypatch.setenv("CLOCKIFY_API_KEY", "k")
+    monkeypatch.setenv("CLOCKIFY_WORKSPACE_ID", "W")
+    monkeypatch.setenv("OUTLOOK_ICS_URL", "")
+    respx.get(f"{BASE}/user").mock(return_value=httpx.Response(200, json={"id": "u"}))
+    respx.get(f"{BASE}/workspaces/W/projects").mock(
+        return_value=httpx.Response(200, json=[{"id": "p1", "name": "Proj A"}])
+    )
+    respx.get(f"{BASE}/workspaces/W/projects/p1/tasks").mock(
+        return_value=httpx.Response(200, json=[{"id": "t1", "name": "T"}])
+    )
+    respx.get(f"{BASE}/workspaces/W/tags").mock(
+        return_value=httpx.Response(200, json=[{"id": "g1", "name": "G"}])
+    )
+    respx.post(f"{BASE}/workspaces/W/time-entries").mock(
+        return_value=httpx.Response(201, json={"id": "e1"})
+    )
+    item = [
+        {
+            "description": "Reunião Recorrente",
+            "start": "2026-06-04T09:00:00",
+            "end": "2026-06-04T10:00:00",
+            "task_name": "T",
+            "tag_names": ["G"],
+            "billable": False,
+            "project_name": "Proj A",
+        }
+    ]
+    f = tmp_path / "e.json"
+    f.write_text(json.dumps(item), encoding="utf-8")
+    rc = main(["add", "--file", str(f)])
+    assert rc == 0
+    from clockify_horas.history import suggest_for
+
+    assert suggest_for("Reunião Recorrente") == {
+        "project_name": "Proj A",
+        "task_name": "T",
+        "tag_names": ["G"],
+        "billable": False,
+    }
 
 
 def test_agenda_sem_ics_erro(monkeypatch, tmp_path, capsys):

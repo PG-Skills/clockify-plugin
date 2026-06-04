@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
+from clockify_horas import history
 from clockify_horas.bizdays import business_days
 from clockify_horas.clockify_api import ClockifyClient
 from clockify_horas.config import (
@@ -163,7 +164,7 @@ def _cmd_add(args: argparse.Namespace) -> int:
         return 0
 
     gravados: list[Any] = []
-    for i, p in enumerate(payloads, start=1):
+    for i, (entry, p) in enumerate(zip(entries, payloads, strict=True), start=1):
         try:
             resp = client.create_entry(p)
         except httpx.HTTPError as e:
@@ -178,6 +179,9 @@ def _cmd_add(args: argparse.Namespace) -> int:
             )
             return 1
         gravados.append(resp.get("id"))
+        history.record_entry(
+            entry.description, entry.task_name, entry.tag_names, entry.billable, entry.project_name
+        )
         print(f"Lançado: {p['description']} -> {resp.get('id')}")
     return 0
 
