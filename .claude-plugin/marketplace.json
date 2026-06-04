@@ -1,0 +1,12 @@
+{
+  "name": "pg-clockify",
+  "owner": { "name": "PG Consultoria" },
+  "description": "Marketplace interno — lançador de horas Clockify.",
+  "plugins": [
+    {
+      "name": "clockify-horas",
+      "source": ".",
+      "description": "Lançador de horas Clockify via Outlook (ICS) com onboarding guiado."
+    }
+  ]
+}
