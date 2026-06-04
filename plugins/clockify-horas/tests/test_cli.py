@@ -258,6 +258,11 @@ def test_add_para_limpo_na_falha_parcial(monkeypatch, capsys, tmp_path):
     assert rc == 1
     err = capsys.readouterr().err
     assert "1/2" in err
+    from clockify_horas.learned import read_learned
+
+    learned = read_learned()
+    assert len(learned) == 1
+    assert learned[0]["match"] == "Dia 1"
 
 
 @respx.mock
@@ -437,6 +442,80 @@ def test_add_grava_learned_no_sucesso(monkeypatch, tmp_path):
             "billable": False,
         }
     ]
+
+
+def test_learned_add_acrescenta(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    rc = main(
+        [
+            "learned",
+            "add",
+            "--match",
+            "Cliente Demo",
+            "--project",
+            "Proj Demo",
+            "--task",
+            "Tarefa Demo",
+            "--tag",
+            "Etiqueta Demo",
+            "--billable",
+        ]
+    )
+    assert rc == 0
+    from clockify_horas.learned import read_learned
+
+    assert read_learned() == [
+        {
+            "match": "Cliente Demo",
+            "project_name": "Proj Demo",
+            "task_name": "Tarefa Demo",
+            "tag_names": ["Etiqueta Demo"],
+            "billable": True,
+        }
+    ]
+
+
+def test_learned_add_sem_tag_nem_billable(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    rc = main(["learned", "add", "--match", "M", "--task", "T"])
+    assert rc == 0
+    from clockify_horas.learned import read_learned
+
+    assert read_learned() == [
+        {
+            "match": "M",
+            "project_name": None,
+            "task_name": "T",
+            "tag_names": [],
+            "billable": False,
+        }
+    ]
+
+
+def test_learned_list_imprime(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    from clockify_horas.learned import record
+
+    record("Daily", None, "Tarefa Demo", ["Etiqueta Demo"], False)
+    rc = main(["learned", "list"])
+    assert rc == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out == [
+        {
+            "match": "Daily",
+            "project_name": None,
+            "task_name": "Tarefa Demo",
+            "tag_names": ["Etiqueta Demo"],
+            "billable": False,
+        }
+    ]
+
+
+def test_learned_list_vazio_imprime_lista_vazia(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    rc = main(["learned", "list"])
+    assert rc == 0
+    assert json.loads(capsys.readouterr().out) == []
 
 
 def test_agenda_sem_ics_erro(monkeypatch, tmp_path, capsys):

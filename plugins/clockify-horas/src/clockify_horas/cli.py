@@ -317,6 +317,23 @@ def _cmd_suggest(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_learned_list(args: argparse.Namespace) -> int:
+    print(json.dumps(learned.read_learned(), ensure_ascii=False, indent=2))
+    return 0
+
+
+def _cmd_learned_add(args: argparse.Namespace) -> int:
+    learned.record(
+        match=args.match,
+        project_name=args.project,
+        task_name=args.task,
+        tag_names=[args.tag] if args.tag else [],
+        billable=bool(args.billable) if args.billable is not None else False,
+    )
+    print(f"Atividade aprendida: {args.match}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="clockify-horas")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -387,6 +404,24 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_doc = config_sub.add_parser("doctor", help="Valida a config contra a API")
     p_doc.set_defaults(func=_cmd_config_doctor)
+
+    p_learned = sub.add_parser("learned", help="Atividades aprendidas (memória local)")
+    learned_sub = p_learned.add_subparsers(dest="learned_cmd", required=True)
+
+    p_ll = learned_sub.add_parser("list", help="Lista as atividades aprendidas (JSON)")
+    p_ll.set_defaults(func=_cmd_learned_list)
+
+    p_la = learned_sub.add_parser("add", help="Aprende uma atividade por palavra-chave")
+    p_la.add_argument("--match", required=True, help="Palavra-chave ou título a reconhecer")
+    p_la.add_argument("--task", required=True)
+    p_la.add_argument("--tag")
+    p_la.add_argument("--project")
+    la_bill = p_la.add_mutually_exclusive_group()
+    la_bill.add_argument(
+        "--billable", dest="billable", action="store_const", const=True, default=None
+    )
+    la_bill.add_argument("--no-billable", dest="billable", action="store_const", const=False)
+    p_la.set_defaults(func=_cmd_learned_add)
 
     return parser
 
