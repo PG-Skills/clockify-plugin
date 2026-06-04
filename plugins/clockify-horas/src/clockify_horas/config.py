@@ -17,10 +17,10 @@ class Config:
 
 @dataclass
 class Defaults:
-    task_name: str
-    tag_name: str
-    billable: bool
-    daily_target_hours: float
+    task_name: str | None = None
+    tag_name: str | None = None
+    billable: bool | None = None
+    daily_target_hours: float = 8.0
     project: str | None = None
 
 
@@ -104,17 +104,20 @@ def load_api_key(use_dotenv: bool = True, path: Path | None = None) -> str:
 
 
 def load_defaults(path: Path | None = None) -> Defaults:
+    """Lê a atividade padrão. Tolerante: sem 'defaults' ou parcial → campos None + 8h.
+
+    Nunca levanta — a atividade padrão é opcional (multi-projeto não tem uma só).
+    """
     d = read_raw(path).get("defaults", {})
-    try:
-        return Defaults(
-            task_name=d["task_name"],
-            tag_name=d["tag_name"],
-            billable=bool(d["billable"]),
-            daily_target_hours=float(d["daily_target_hours"]),
-            project=d.get("project"),
-        )
-    except KeyError as e:
-        raise ValueError(f"defaults incompletos no config ({e}). Rode /clockify-setup.") from e
+    billable = d.get("billable")
+    dth = d.get("daily_target_hours")
+    return Defaults(
+        task_name=d.get("task_name"),
+        tag_name=d.get("tag_name"),
+        billable=bool(billable) if billable is not None else None,
+        daily_target_hours=float(dth) if dth is not None else 8.0,
+        project=d.get("project"),
+    )
 
 
 def load_overrides(path: Path | None = None) -> list[Override]:

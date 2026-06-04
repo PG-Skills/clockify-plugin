@@ -102,17 +102,29 @@ def test_load_defaults_do_config(monkeypatch, tmp_path):
     )
 
 
-def test_load_defaults_incompleto_levanta(monkeypatch, tmp_path):
+def test_load_defaults_sem_secao_tolerante(monkeypatch, tmp_path):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
-    from clockify_horas.config import write_raw
+    from clockify_horas.config import load_defaults, write_raw
+
+    write_raw({"clockify": {"api_key": "K", "workspace_id": "W"}})  # sem 'defaults'
+    d = load_defaults()
+    assert d.task_name is None
+    assert d.tag_name is None
+    assert d.billable is None
+    assert d.daily_target_hours == 8.0
+    assert d.project is None
+
+
+def test_load_defaults_parcial_nao_levanta(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    from clockify_horas.config import load_defaults, write_raw
 
     write_raw({"defaults": {"task_name": "Só isso"}})
-    try:
-        load_defaults()
-    except ValueError:
-        pass
-    else:
-        raise AssertionError("esperava ValueError")
+    d = load_defaults()  # não levanta
+    assert d.task_name == "Só isso"
+    assert d.tag_name is None
+    assert d.billable is None
+    assert d.daily_target_hours == 8.0
 
 
 def test_load_overrides(monkeypatch, tmp_path):
