@@ -4,6 +4,8 @@ Wrapper fino para o Claude Code neste repositório. Detalhes de uso ficam no `RE
 
 ## Comandos principais
 
+Rodar dentro de `plugins/clockify-horas/`:
+
 ```bash
 uv sync                       # instalar deps
 uv run pytest -q              # testes
@@ -23,7 +25,7 @@ a CLI só executa I/O confiável.
 - `clockify_api.py` — client HTTP (base `https://api.clockify.me/api/v1`), metadata paginada, entries por dia/intervalo, create.
 - `entries.py` — lógica pura: `from_event`, totais, `to_utc_iso`, `build_payload` (resolve nomes → IDs).
 - `bizdays.py` — dias úteis (seg–sex) de um intervalo. `config.py` — config XDG + precedência env. `models.py` — dataclasses.
-- Slash commands: `commands/horas.md` (um dia via Outlook), `commands/lancar.md` (vários dias / retroativo).
+- Slash commands: `plugins/clockify-horas/commands/horas.md` (um dia via Outlook), `plugins/clockify-horas/commands/lancar.md` (vários dias / retroativo).
 
 ## Convenções específicas (gotchas)
 

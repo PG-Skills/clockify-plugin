@@ -4,7 +4,7 @@ Este repo é, ao mesmo tempo, o **plugin** `clockify-horas` e o **marketplace** 
 
 ## Cortar um release
 
-1. Faça as mudanças e rode `uv run pytest -q && uv run ruff check . && uv run pyright`.
+1. Faça as mudanças e rode (dentro de `plugins/clockify-horas/`): `uv run pytest -q && uv run ruff check . && uv run pyright`.
 2. Bump da versão em `.claude-plugin/plugin.json` (campo `version`, semver). **Esta é a
    fonte única da versão**: o SessionStart hook (`scripts/ensure_cli.py`) lê exatamente esse
    campo para decidir reinstalar a CLI. Bump aqui = colega recebe o código novo na próxima
@@ -30,6 +30,7 @@ requer apenas `uv` no PATH.
 ## Validação local
 
 ```
-claude plugin validate .
-claude --plugin-dir .   # carrega o plugin do diretório atual numa sessão de teste
+claude plugin validate plugins/clockify-horas   # valida o plugin
+claude plugin validate .                        # valida o marketplace
+claude --plugin-dir plugins/clockify-horas      # carrega o plugin do subdiretório numa sessão de teste
 ```

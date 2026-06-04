@@ -61,6 +61,7 @@ precedência sobre o arquivo (útil em CI).
 ## Dev
 
 ```bash
+cd plugins/clockify-horas
 uv sync
 uv run pytest -q
 uv run ruff check .

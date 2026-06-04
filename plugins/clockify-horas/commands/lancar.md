@@ -1,5 +1,5 @@
 ---
-description: Lança horas no Clockify em vários dias de uma vez (ex: mês retroativo)
+description: "Lança horas no Clockify em vários dias de uma vez (ex: mês retroativo)"
 ---
 
 Você vai lançar horas no Clockify em VÁRIOS dias de uma vez. Conduza em português, um

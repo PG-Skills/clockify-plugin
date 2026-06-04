@@ -5,7 +5,7 @@
   "plugins": [
     {
       "name": "clockify-horas",
-      "source": ".",
+      "source": "./plugins/clockify-horas",
       "description": "Lançador de horas Clockify via Outlook (ICS) com onboarding guiado."
     }
   ]
