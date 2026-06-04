@@ -30,12 +30,14 @@ I/O ao subcomando `clockify-horas config`. Nunca escreva o arquivo de config dir
    *Preferences* → aba *Advanced* (ou *Profile Settings → API*) → *Generate*. Peça a key e
    rode `clockify-horas config set --api-key "<KEY>"`.
 
-2. **Workspace.** Rode `clockify-horas meta`. Ele lista os workspaces e metadados.
-   - Se o `meta` falhar com erro de auth, a key está errada — volte ao passo 1.
+2. **Workspace.** Rode `clockify-horas workspaces` — ele lista os workspaces da conta
+   (precisa só da api key; ainda não há workspace configurado).
+   - Se falhar com erro de auth, a key está errada — volte ao passo 1.
    - Se houver só **um** workspace, defina-o sozinho (sem perguntar).
    - Se houver vários, liste-os **numerados** e peça o número.
    - Grave com `clockify-horas config set --workspace-id "<ID>"`.
-   - Reexecute `clockify-horas meta` se necessário para obter os metadados do workspace certo.
+   - (Só depois disso o `clockify-horas meta` funciona — ele é usado no passo de Defaults
+     para listar tarefas/etiquetas do workspace escolhido.)
 
 3. **Link ICS do Outlook.** Explique: Outlook web → *Configurações* → *Calendário* →
    *Calendários compartilhados* → *Publicar um calendário* → escolha o calendário e a

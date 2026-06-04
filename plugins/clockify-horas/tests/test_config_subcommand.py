@@ -196,3 +196,21 @@ def test_config_doctor_workspace_nao_encontrado(monkeypatch, tmp_path, capsys):
     assert rc == 1
     assert "FAIL" in out
     assert "não está entre" in out
+
+
+@respx.mock
+def test_workspaces_lista(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("CLOCKIFY_API_KEY", "K")
+    for var in ("CLOCKIFY_WORKSPACE_ID", "OUTLOOK_ICS_URL"):
+        monkeypatch.delenv(var, raising=False)
+    respx.get(f"{BASE}/workspaces").mock(
+        return_value=httpx.Response(
+            200, json=[{"id": "W1", "name": "Um"}, {"id": "W2", "name": "Dois"}]
+        )
+    )
+    rc = main(["workspaces"])
+    assert rc == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out == [{"id": "W1", "name": "Um"}, {"id": "W2", "name": "Dois"}]

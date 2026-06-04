@@ -35,6 +35,7 @@ No Claude Code:
 clockify-horas config show
 clockify-horas config doctor
 clockify-horas agenda --date 2026-01-28
+clockify-horas workspaces
 clockify-horas meta
 clockify-horas entries --date 2026-01-28
 clockify-horas business-days --start 2026-05-01 --end 2026-05-31

@@ -88,6 +88,19 @@ def load_config(use_dotenv: bool = True, path: Path | None = None) -> Config:
     return Config(api_key=api_key, workspace_id=workspace_id, ics_url=ics_url)
 
 
+def load_api_key(use_dotenv: bool = True, path: Path | None = None) -> str:
+    """Carrega apenas a api key. Precedência: env > arquivo de config.
+
+    Não exige workspace_id — útil no onboarding antes de descobrir o workspace.
+    """
+    if use_dotenv:
+        load_dotenv()
+    api_key = os.getenv("CLOCKIFY_API_KEY") or read_raw(path).get("clockify", {}).get("api_key", "")
+    if not api_key:
+        raise ValueError("Configuração faltando: CLOCKIFY_API_KEY. Rode /clockify-setup.")
+    return api_key
+
+
 def load_defaults(path: Path | None = None) -> Defaults:
     d = read_raw(path).get("defaults", {})
     try:

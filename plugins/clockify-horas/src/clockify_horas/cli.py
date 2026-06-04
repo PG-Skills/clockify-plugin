@@ -12,6 +12,7 @@ from clockify_horas.bizdays import business_days
 from clockify_horas.clockify_api import ClockifyClient
 from clockify_horas.config import (
     config_path,
+    load_api_key,
     load_config,
     load_defaults,
     read_raw,
@@ -28,6 +29,17 @@ def _parse_local(value: str) -> datetime:
     """ISO8601 -> datetime aware. Se vier sem offset, assume o fuso local."""
     dt = datetime.fromisoformat(value)
     return dt if dt.tzinfo is not None else dt.replace(tzinfo=_TZ)
+
+
+def _cmd_workspaces(args: argparse.Namespace) -> int:
+    client = ClockifyClient(load_api_key(), "")
+    ws = client.list_workspaces()
+    print(
+        json.dumps(
+            [{"id": w["id"], "name": w.get("name")} for w in ws], ensure_ascii=False, indent=2
+        )
+    )
+    return 0
 
 
 def _cmd_agenda(args: argparse.Namespace) -> int:
@@ -272,6 +284,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_meta = sub.add_parser("meta", help="Lista projetos/tarefas/tags do workspace")
     p_meta.set_defaults(func=_cmd_meta)
+
+    p_ws = sub.add_parser("workspaces", help="Lista os workspaces da conta (precisa só da api key)")
+    p_ws.set_defaults(func=_cmd_workspaces)
 
     p_entries = sub.add_parser("entries", help="Lista lançamentos (--date OU --start/--end)")
     p_entries.add_argument("--date", help="AAAA-MM-DD (um dia)")
