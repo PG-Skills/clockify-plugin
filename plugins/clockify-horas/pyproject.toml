@@ -1,6 +1,6 @@
 [project]
 name = "clockify-horas"
-version = "1.0.0"
+version = "1.0.1"
 description = "Lançador de horas Clockify a partir do Outlook (ICS)"
 requires-python = ">=3.12"
 dependencies = [
