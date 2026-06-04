@@ -4,6 +4,12 @@ Este repo é, ao mesmo tempo, o **plugin** `clockify-horas` e o **marketplace** 
 
 ## Cortar um release
 
+> **Política de versão (pré-lançamento):** enquanto o plugin **não** for lançado para os
+> colegas, tudo permanece em **`1.0.0`** — não faça bump a cada mudança. O versionamento em
+> lockstep abaixo vale a partir do **primeiro lançamento de verdade**. Em dev, atualize o
+> binário local com `uv tool install --force --reinstall plugins/clockify-horas` (rebuild
+> limpo independe da versão).
+
 1. Faça as mudanças e rode (dentro de `plugins/clockify-horas/`): `uv run pytest -q && uv run ruff check . && uv run pyright`.
 2. Bump da versão em **lockstep** nos cinco pontos (semver, mesma versão em todos):
    `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` (entrada do plugin),

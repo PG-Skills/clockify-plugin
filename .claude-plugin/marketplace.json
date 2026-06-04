@@ -6,7 +6,7 @@
     {
       "name": "clockify-horas",
       "source": "./plugins/clockify-horas",
-      "version": "1.1.0",
+      "version": "1.0.0",
       "description": "Lançador de horas Clockify via Outlook (ICS) com onboarding guiado."
     }
   ]
