@@ -181,3 +181,18 @@ def test_config_doctor_key_invalida(monkeypatch, tmp_path, capsys):
     rc = main(["config", "doctor"])
     assert rc == 1
     assert "FAIL" in capsys.readouterr().out
+
+
+@respx.mock
+def test_config_doctor_workspace_nao_encontrado(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    monkeypatch.chdir(tmp_path)
+    for var in ("CLOCKIFY_API_KEY", "CLOCKIFY_WORKSPACE_ID", "OUTLOOK_ICS_URL"):
+        monkeypatch.delenv(var, raising=False)
+    _seed_config()
+    respx.get(f"{BASE}/workspaces").mock(return_value=httpx.Response(200, json=[{"id": "OUTRO"}]))
+    rc = main(["config", "doctor"])
+    out = capsys.readouterr().out
+    assert rc == 1
+    assert "FAIL" in out
+    assert "não está entre" in out

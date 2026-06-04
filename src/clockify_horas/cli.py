@@ -226,8 +226,9 @@ def _cmd_config_doctor(args: argparse.Namespace) -> int:
     client = ClockifyClient(cfg.api_key, cfg.workspace_id)
     try:
         ids = {w["id"] for w in client.list_workspaces()}
-    except httpx.HTTPStatusError as e:
-        print(f"FAIL: API key inválida ou sem acesso (HTTP {e.response.status_code}).")
+    except httpx.HTTPError as e:
+        status = f" (HTTP {e.response.status_code})" if isinstance(e, httpx.HTTPStatusError) else ""
+        print(f"FAIL: API key inválida ou sem acesso{status}.")
         return 1
     if cfg.workspace_id in ids:
         print("OK: API key e workspace válidos.")
@@ -247,8 +248,8 @@ def _cmd_config_doctor(args: argparse.Namespace) -> int:
             print(f"OK: etiqueta default '{d.tag_name}' existe.")
         else:
             print(f"WARN: etiqueta default '{d.tag_name}' não encontrada.")
-    except ValueError:
-        print("WARN: defaults ainda não configurados.")
+    except (ValueError, httpx.HTTPError):
+        print("WARN: defaults ainda não configurados ou erro ao buscar metadata.")
 
     if cfg.ics_url:
         try:
