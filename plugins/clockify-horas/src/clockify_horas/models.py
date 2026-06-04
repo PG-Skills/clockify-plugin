@@ -21,6 +21,7 @@ class TimeEntry:
     task_name: str
     tag_names: list[str]
     billable: bool
+    project_name: str | None = None
 
 
 @dataclass

@@ -44,10 +44,9 @@ def to_utc_iso(dt: datetime) -> str:
 def build_payload(entry: TimeEntry, metadata: Metadata) -> dict:
     """Resolve nomes -> IDs e monta o corpo do POST de time-entry do Clockify.
 
-    Levanta KeyError com o nome ofensor se a tarefa ou alguma tag não existir
-    na metadata (o CLI/orquestrador deve listar os disponíveis e pedir correção).
+    Levanta KeyError com o nome ofensor se a tarefa/projeto/tag não resolver.
     """
-    project_id, task_id = _resolve_task(entry.task_name, metadata)
+    project_id, task_id = _resolve_task(entry.task_name, metadata, entry.project_name)
     tag_ids = [_resolve_tag(name, metadata) for name in entry.tag_names]
     return {
         "start": to_utc_iso(entry.start),
@@ -60,7 +59,18 @@ def build_payload(entry: TimeEntry, metadata: Metadata) -> dict:
     }
 
 
-def _resolve_task(task_name: str, metadata: Metadata) -> tuple[str, str]:
+def _resolve_task(
+    task_name: str, metadata: Metadata, project_name: str | None = None
+) -> tuple[str, str]:
+    if project_name is not None:
+        project_id = metadata.projects.get(project_name)
+        if project_id is None:
+            raise KeyError(f"Projeto não encontrado no Clockify: {project_name!r}")
+        task_id = metadata.tasks.get((project_id, task_name))
+        if task_id is None:
+            raise KeyError(f"Tarefa {task_name!r} não existe no projeto {project_name!r}.")
+        return project_id, task_id
+
     matches = [(pid, tid) for (pid, name), tid in metadata.tasks.items() if name == task_name]
     if not matches:
         raise KeyError(f"Tarefa não encontrada no Clockify: {task_name!r}")
@@ -69,7 +79,7 @@ def _resolve_task(task_name: str, metadata: Metadata) -> tuple[str, str]:
         projs = ", ".join(proj_by_id.get(pid, pid) for pid, _ in matches)
         raise KeyError(
             f"Tarefa {task_name!r} ambígua: existe em múltiplos projetos ({projs}). "
-            "Renomeie para um nome único entre projetos."
+            "Informe o projeto (campo project_name / --project) para desambiguar."
         )
     return matches[0]
 

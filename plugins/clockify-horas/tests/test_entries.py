@@ -147,3 +147,65 @@ def test_build_payload_tarefa_unica_resolve():
     payload = build_payload(_entry(), META)
     assert payload["projectId"] == "p1"
     assert payload["taskId"] == "t1"
+
+
+def _md_dup():
+    return Metadata(
+        workspace_id="w",
+        user_id="u",
+        projects={"Proj A": "p1", "Proj B": "p2"},
+        tasks={("p1", "Dup"): "t1", ("p2", "Dup"): "t2", ("p1", "Único"): "t3"},
+        tags={"Tag": "g1"},
+    )
+
+
+def _dup_entry(task_name, project_name=None):
+    tz = ZoneInfo("America/Sao_Paulo")
+    return TimeEntry(
+        description="x",
+        start=datetime(2026, 6, 4, 9, 0, tzinfo=tz),
+        end=datetime(2026, 6, 4, 10, 0, tzinfo=tz),
+        task_name=task_name,
+        tag_names=["Tag"],
+        billable=False,
+        project_name=project_name,
+    )
+
+
+def test_resolve_com_projeto_desambigua():
+    p = build_payload(_dup_entry("Dup", project_name="Proj B"), _md_dup())
+    assert p["projectId"] == "p2"
+    assert p["taskId"] == "t2"
+
+
+def test_resolve_projeto_inexistente_levanta():
+    try:
+        build_payload(_dup_entry("Dup", project_name="Proj X"), _md_dup())
+    except KeyError as e:
+        assert "Projeto não encontrado" in str(e)
+    else:
+        raise AssertionError("esperava KeyError")
+
+
+def test_resolve_tarefa_fora_do_projeto_levanta():
+    try:
+        build_payload(_dup_entry("Único", project_name="Proj B"), _md_dup())
+    except KeyError as e:
+        assert "não existe no projeto" in str(e)
+    else:
+        raise AssertionError("esperava KeyError")
+
+
+def test_resolve_nome_unico_sem_projeto_ok():
+    p = build_payload(_dup_entry("Único"), _md_dup())
+    assert p["projectId"] == "p1"
+    assert p["taskId"] == "t3"
+
+
+def test_resolve_ambiguo_sem_projeto_levanta():
+    try:
+        build_payload(_dup_entry("Dup"), _md_dup())
+    except KeyError as e:
+        assert "ambígua" in str(e)
+    else:
+        raise AssertionError("esperava KeyError")
