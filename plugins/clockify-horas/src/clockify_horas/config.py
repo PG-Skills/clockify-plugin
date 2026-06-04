@@ -24,15 +24,6 @@ class Defaults:
     project: str | None = None
 
 
-@dataclass
-class Override:
-    match: str
-    task_name: str
-    tag_name: str
-    billable: bool
-    project: str | None = None
-
-
 def config_root() -> Path:
     """Diretório da config por SO. ``$XDG_CONFIG_HOME`` tem prioridade em qualquer SO."""
     base = os.getenv("XDG_CONFIG_HOME")
@@ -119,20 +110,3 @@ def load_defaults(path: Path | None = None) -> Defaults:
         daily_target_hours=float(dth) if dth is not None else 8.0,
         project=d.get("project"),
     )
-
-
-def load_overrides(path: Path | None = None) -> list[Override]:
-    raw = read_raw(path).get("overrides", [])
-    try:
-        return [
-            Override(
-                match=o["match"],
-                task_name=o["task_name"],
-                tag_name=o["tag_name"],
-                billable=bool(o["billable"]),
-                project=o.get("project"),
-            )
-            for o in raw
-        ]
-    except KeyError as e:
-        raise ValueError(f"override incompleto no config ({e}). Verifique config.json.") from e

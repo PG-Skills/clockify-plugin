@@ -127,53 +127,6 @@ def test_load_defaults_parcial_nao_levanta(monkeypatch, tmp_path):
     assert d.daily_target_hours == 8.0
 
 
-def test_load_overrides(monkeypatch, tmp_path):
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
-    from clockify_horas.config import Override, load_overrides, write_raw
-
-    write_raw(
-        {
-            "overrides": [
-                {
-                    "match": "Cliente Demo",
-                    "task_name": "Assinatura",
-                    "tag_name": "Implantação",
-                    "billable": True,
-                }
-            ]
-        }
-    )
-    assert load_overrides() == [
-        Override(
-            match="Cliente Demo",
-            task_name="Assinatura",
-            tag_name="Implantação",
-            billable=True,
-        )
-    ]
-
-
-def test_load_overrides_vazio(monkeypatch, tmp_path):
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
-    from clockify_horas.config import load_overrides, write_raw
-
-    write_raw({})
-    assert load_overrides() == []
-
-
-def test_load_overrides_incompleto_levanta(monkeypatch, tmp_path):
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
-    from clockify_horas.config import load_overrides, write_raw
-
-    write_raw({"overrides": [{"match": "X"}]})
-    try:
-        load_overrides()
-    except ValueError as e:
-        assert "override incompleto" in str(e)
-    else:
-        raise AssertionError("esperava ValueError")
-
-
 def test_load_defaults_com_projeto(monkeypatch, tmp_path):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
     from clockify_horas.config import load_defaults, write_raw
@@ -216,24 +169,3 @@ def test_load_defaults_billable_false_explicito(monkeypatch, tmp_path):
     write_raw({"defaults": {"task_name": "T", "billable": False}})
     d = load_defaults()
     assert d.billable is False  # explícito False, não None
-
-
-def test_load_overrides_com_projeto(monkeypatch, tmp_path):
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
-    from clockify_horas.config import load_overrides, write_raw
-
-    write_raw(
-        {
-            "overrides": [
-                {
-                    "match": "M",
-                    "task_name": "T",
-                    "tag_name": "G",
-                    "billable": True,
-                    "project": "Proj B",
-                }
-            ]
-        }
-    )
-    ov = load_overrides()
-    assert ov[0].project == "Proj B"

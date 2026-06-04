@@ -195,7 +195,6 @@ def _cmd_config_set(args: argparse.Namespace) -> int:
     ck = data.setdefault("clockify", {})
     ol = data.setdefault("outlook", {})
     df = data.setdefault("defaults", {})
-    data.setdefault("overrides", [])
     if args.api_key is not None:
         ck["api_key"] = args.api_key
     if args.workspace_id is not None:
@@ -233,23 +232,6 @@ def _cmd_config_show(args: argparse.Namespace) -> int:
     if red.get("outlook", {}).get("ics_url"):
         red["outlook"]["ics_url"] = "***"
     print(json.dumps(red, ensure_ascii=False, indent=2))
-    return 0
-
-
-def _cmd_config_add_override(args: argparse.Namespace) -> int:
-    data = read_raw()
-    ov = data.setdefault("overrides", [])
-    entry = {
-        "match": args.match,
-        "task_name": args.task,
-        "tag_name": args.tag,
-        "billable": bool(args.billable) if args.billable is not None else False,
-    }
-    if args.project is not None:
-        entry["project"] = args.project
-    ov.append(entry)
-    p = write_raw(data)
-    print(f"Override adicionado ({args.match}): {p}")
     return 0
 
 
@@ -379,18 +361,6 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_show = config_sub.add_parser("show", help="Imprime a config (api_key redigida)")
     p_show.set_defaults(func=_cmd_config_show)
-
-    p_ovr = config_sub.add_parser("add-override", help="Adiciona regra de override por cliente")
-    p_ovr.add_argument("--match", required=True, help="Palavra-chave do cliente/projeto")
-    p_ovr.add_argument("--task", required=True)
-    p_ovr.add_argument("--tag", required=True)
-    p_ovr.add_argument("--project")
-    ovr_bill = p_ovr.add_mutually_exclusive_group()
-    ovr_bill.add_argument(
-        "--billable", dest="billable", action="store_const", const=True, default=None
-    )
-    ovr_bill.add_argument("--no-billable", dest="billable", action="store_const", const=False)
-    p_ovr.set_defaults(func=_cmd_config_add_override)
 
     p_doc = config_sub.add_parser("doctor", help="Valida a config contra a API")
     p_doc.set_defaults(func=_cmd_config_doctor)

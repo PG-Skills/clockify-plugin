@@ -96,33 +96,6 @@ def test_config_show_sem_config_erro(monkeypatch, tmp_path, capsys):
     assert "clockify-setup" in capsys.readouterr().err
 
 
-def test_config_add_override(monkeypatch, tmp_path):
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
-    rc = main(
-        [
-            "config",
-            "add-override",
-            "--match",
-            "Cliente Demo",
-            "--task",
-            "Assinatura",
-            "--tag",
-            "Implantação",
-            "--billable",
-        ]
-    )
-    assert rc == 0
-    data = json.loads(config_path().read_text(encoding="utf-8"))
-    assert data["overrides"] == [
-        {
-            "match": "Cliente Demo",
-            "task_name": "Assinatura",
-            "tag_name": "Implantação",
-            "billable": True,
-        }
-    ]
-
-
 def test_config_show_redige_ics_url(monkeypatch, tmp_path, capsys):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
     main(
@@ -226,28 +199,6 @@ def test_config_set_project(monkeypatch, tmp_path):
     assert rc == 0
     data = json.loads(config_path().read_text(encoding="utf-8"))
     assert data["defaults"]["project"] == "Proj A"
-
-
-def test_config_add_override_project(monkeypatch, tmp_path):
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
-    rc = main(
-        [
-            "config",
-            "add-override",
-            "--match",
-            "M",
-            "--task",
-            "T",
-            "--tag",
-            "G",
-            "--billable",
-            "--project",
-            "Proj B",
-        ]
-    )
-    assert rc == 0
-    data = json.loads(config_path().read_text(encoding="utf-8"))
-    assert data["overrides"][0]["project"] == "Proj B"
 
 
 @respx.mock
