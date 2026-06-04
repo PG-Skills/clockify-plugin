@@ -33,18 +33,18 @@ class Override:
     project: str | None = None
 
 
-def config_path() -> Path:
-    """Local da config por SO. ``$XDG_CONFIG_HOME`` tem prioridade em qualquer SO
-    (usado para isolar testes); no Windows usa ``%APPDATA%``; senão ``~/.config``.
-    """
+def config_root() -> Path:
+    """Diretório da config por SO. ``$XDG_CONFIG_HOME`` tem prioridade em qualquer SO."""
     base = os.getenv("XDG_CONFIG_HOME")
     if base:
-        root = Path(base)
-    elif os.name == "nt" and os.getenv("APPDATA"):
-        root = Path(os.environ["APPDATA"])
-    else:
-        root = Path.home() / ".config"
-    return root / APP_DIR / "config.json"
+        return Path(base) / APP_DIR
+    if os.name == "nt" and os.getenv("APPDATA"):
+        return Path(os.environ["APPDATA"]) / APP_DIR
+    return Path.home() / ".config" / APP_DIR
+
+
+def config_path() -> Path:
+    return config_root() / "config.json"
 
 
 def read_raw(path: Path | None = None) -> dict:
