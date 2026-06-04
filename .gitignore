@@ -5,3 +5,6 @@ __pycache__/
 .cache/
 *.cache.json
 .worktrees/
+
+# Handoff de sessão (scaffolding local, não versionado)
+HANDOFF.md
