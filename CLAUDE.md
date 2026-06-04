@@ -35,8 +35,10 @@ a CLI só executa I/O confiável.
   `/clockify-setup` ou o subcomando `clockify-horas config set`.
 - **Tarefa resolve por NOME, globalmente** (`build_payload._resolve_task`) — o nome precisa
   ser único entre projetos.
-- **Overrides por cliente** vivem na seção `overrides` do config de cada pessoa (regra por
-  palavra-chave `match`). Não há dado de cliente no repo.
+- **Atividades aprendidas** (título/palavra-chave → projeto/tarefa) vivem em
+  `learned.json` por-usuário (fora do repo): o `add` aprende no sucesso e `learned add`
+  registra por palavra-chave. O **Claude** reconhece na conversa; o código não adivinha.
+  Não há dado de cliente no repo.
 - **ICS é opcional**: só o subcomando `agenda` (fluxo `/horas`) precisa dele; `/lancar`
   funciona sem.
 - **Horários em UTC**: conversão de hora local (America/Sao_Paulo) em `to_utc_iso`.
