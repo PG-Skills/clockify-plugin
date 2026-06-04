@@ -179,21 +179,13 @@ def test_resolve_com_projeto_desambigua():
 
 
 def test_resolve_projeto_inexistente_levanta():
-    try:
+    with pytest.raises(KeyError, match="Projeto não encontrado"):
         build_payload(_dup_entry("Dup", project_name="Proj X"), _md_dup())
-    except KeyError as e:
-        assert "Projeto não encontrado" in str(e)
-    else:
-        raise AssertionError("esperava KeyError")
 
 
 def test_resolve_tarefa_fora_do_projeto_levanta():
-    try:
+    with pytest.raises(KeyError, match="não existe no projeto"):
         build_payload(_dup_entry("Único", project_name="Proj B"), _md_dup())
-    except KeyError as e:
-        assert "não existe no projeto" in str(e)
-    else:
-        raise AssertionError("esperava KeyError")
 
 
 def test_resolve_nome_unico_sem_projeto_ok():
@@ -203,9 +195,12 @@ def test_resolve_nome_unico_sem_projeto_ok():
 
 
 def test_resolve_ambiguo_sem_projeto_levanta():
-    try:
+    with pytest.raises(KeyError, match="ambígua"):
         build_payload(_dup_entry("Dup"), _md_dup())
-    except KeyError as e:
-        assert "ambígua" in str(e)
-    else:
-        raise AssertionError("esperava KeyError")
+
+
+def test_resolve_project_name_vazio_cai_no_fallback():
+    """project_name="" é tratado como ausente: resolve por nome único (não vira erro de projeto)."""
+    p = build_payload(_dup_entry("Único", project_name=""), _md_dup())
+    assert p["projectId"] == "p1"
+    assert p["taskId"] == "t3"

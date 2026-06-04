@@ -62,7 +62,7 @@ def build_payload(entry: TimeEntry, metadata: Metadata) -> dict:
 def _resolve_task(
     task_name: str, metadata: Metadata, project_name: str | None = None
 ) -> tuple[str, str]:
-    if project_name is not None:
+    if project_name:  # "" / None caem no fallback por nome (JSON gerado por LLM pode mandar "")
         project_id = metadata.projects.get(project_name)
         if project_id is None:
             raise KeyError(f"Projeto não encontrado no Clockify: {project_name!r}")
