@@ -106,7 +106,8 @@ def load_api_key(use_dotenv: bool = True, path: Path | None = None) -> str:
 def load_defaults(path: Path | None = None) -> Defaults:
     """Lê a atividade padrão. Tolerante: sem 'defaults' ou parcial → campos None + 8h.
 
-    Nunca levanta — a atividade padrão é opcional (multi-projeto não tem uma só).
+    Não levanta por campos ausentes/parciais (a atividade padrão é opcional).
+    Valores com tipo inválido (ex.: daily_target_hours não-numérico) ainda podem levantar.
     """
     d = read_raw(path).get("defaults", {})
     billable = d.get("billable")

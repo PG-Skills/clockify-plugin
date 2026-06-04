@@ -209,6 +209,15 @@ def test_load_defaults_sem_projeto_none(monkeypatch, tmp_path):
     assert load_defaults().project is None
 
 
+def test_load_defaults_billable_false_explicito(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    from clockify_horas.config import load_defaults, write_raw
+
+    write_raw({"defaults": {"task_name": "T", "billable": False}})
+    d = load_defaults()
+    assert d.billable is False  # explícito False, não None
+
+
 def test_load_overrides_com_projeto(monkeypatch, tmp_path):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
     from clockify_horas.config import load_overrides, write_raw
