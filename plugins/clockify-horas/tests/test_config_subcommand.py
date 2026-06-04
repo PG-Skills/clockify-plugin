@@ -220,6 +220,36 @@ def test_config_doctor_workspace_nao_encontrado(monkeypatch, tmp_path, capsys):
     assert "não está entre" in out
 
 
+def test_config_set_project(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    rc = main(["config", "set", "--task", "T", "--project", "Proj A"])
+    assert rc == 0
+    data = json.loads(config_path().read_text(encoding="utf-8"))
+    assert data["defaults"]["project"] == "Proj A"
+
+
+def test_config_add_override_project(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    rc = main(
+        [
+            "config",
+            "add-override",
+            "--match",
+            "M",
+            "--task",
+            "T",
+            "--tag",
+            "G",
+            "--billable",
+            "--project",
+            "Proj B",
+        ]
+    )
+    assert rc == 0
+    data = json.loads(config_path().read_text(encoding="utf-8"))
+    assert data["overrides"][0]["project"] == "Proj B"
+
+
 @respx.mock
 def test_workspaces_lista(monkeypatch, tmp_path, capsys):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))

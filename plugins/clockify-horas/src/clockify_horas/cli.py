@@ -202,6 +202,8 @@ def _cmd_config_set(args: argparse.Namespace) -> int:
         df["billable"] = args.billable
     if args.daily_target is not None:
         df["daily_target_hours"] = float(args.daily_target)
+    if args.project is not None:
+        df["project"] = args.project
     p = write_raw(data)
     print(f"Config atualizada: {p}")
     return 0
@@ -229,14 +231,15 @@ def _cmd_config_show(args: argparse.Namespace) -> int:
 def _cmd_config_add_override(args: argparse.Namespace) -> int:
     data = read_raw()
     ov = data.setdefault("overrides", [])
-    ov.append(
-        {
-            "match": args.match,
-            "task_name": args.task,
-            "tag_name": args.tag,
-            "billable": bool(args.billable) if args.billable is not None else False,
-        }
-    )
+    entry = {
+        "match": args.match,
+        "task_name": args.task,
+        "tag_name": args.tag,
+        "billable": bool(args.billable) if args.billable is not None else False,
+    }
+    if args.project is not None:
+        entry["project"] = args.project
+    ov.append(entry)
     p = write_raw(data)
     print(f"Override adicionado ({args.match}): {p}")
     return 0
@@ -334,6 +337,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_set.add_argument("--task")
     p_set.add_argument("--tag")
     p_set.add_argument("--daily-target")
+    p_set.add_argument("--project")
     bill = p_set.add_mutually_exclusive_group()
     bill.add_argument("--billable", dest="billable", action="store_const", const=True, default=None)
     bill.add_argument("--no-billable", dest="billable", action="store_const", const=False)
@@ -349,6 +353,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_ovr.add_argument("--match", required=True, help="Palavra-chave do cliente/projeto")
     p_ovr.add_argument("--task", required=True)
     p_ovr.add_argument("--tag", required=True)
+    p_ovr.add_argument("--project")
     ovr_bill = p_ovr.add_mutually_exclusive_group()
     ovr_bill.add_argument(
         "--billable", dest="billable", action="store_const", const=True, default=None
