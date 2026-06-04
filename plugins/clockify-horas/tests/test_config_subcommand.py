@@ -272,12 +272,12 @@ def test_suggest_match_e_miss(monkeypatch, tmp_path, capsys):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
     from clockify_horas.history import record_entry
 
-    record_entry("Daily", "Time IA", ["Tag"], False, "Proj A")
+    record_entry("Daily", "Equipe Demo", ["Tag"], False, "Proj A")
     rc = main(["suggest", "--description", "daily"])
     assert rc == 0
     assert json.loads(capsys.readouterr().out) == {
         "project_name": "Proj A",
-        "task_name": "Time IA",
+        "task_name": "Equipe Demo",
         "tag_names": ["Tag"],
         "billable": False,
     }

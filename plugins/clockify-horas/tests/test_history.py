@@ -13,11 +13,11 @@ def test_record_e_suggest_roundtrip(monkeypatch, tmp_path):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
     from clockify_horas.history import history_path, record_entry, suggest_for
 
-    record_entry("Daily da Equipe", "Time IA", ["Tag"], False, "Proj A")
+    record_entry("Daily da Equipe", "Equipe Demo", ["Tag"], False, "Proj A")
     s = suggest_for("  daily da equipe  ")  # normaliza trim/lowercase
     assert s == {
         "project_name": "Proj A",
-        "task_name": "Time IA",
+        "task_name": "Equipe Demo",
         "tag_names": ["Tag"],
         "billable": False,
     }
