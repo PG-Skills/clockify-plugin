@@ -1,58 +1,70 @@
 # clockify-horas
 
-Lançador de horas Clockify a partir da agenda do Outlook (ICS), operado via `/horas`.
+Plugin do Claude Code para lançar horas no Clockify a partir da agenda do Outlook (ICS).
+Cada pessoa pluga as próprias credenciais e defaults — não há dado de ninguém no repo.
 
-## Pré-requisitos
+## Instalação
 
-- Python 3.12+ e [uv](https://docs.astral.sh/uv/)
-- Conta Clockify (API key) e calendário do Outlook publicado como ICS
+No Claude Code:
 
-## Setup
+```
+/plugin marketplace add <git-url-deste-repo>
+/plugin install clockify-horas@pg-clockify
+/clockify-setup
+```
 
-1. `uv sync`
-2. Copie `.env.example` para `.env` e preencha:
-   - `CLOCKIFY_API_KEY` — Clockify → Profile Settings → API → Generate
-   - `CLOCKIFY_WORKSPACE_ID` — rode `uv run clockify-horas meta` (lista workspaces se vazio)
-   - `OUTLOOK_ICS_URL` — Outlook → Calendário → Compartilhar → Publicar → link `.ics`
-3. Ajuste `defaults.json` se a tarefa/etiqueta default mudar.
+- `/clockify-setup` configura sua API key do Clockify, o link ICS do Outlook e seus
+  defaults (tarefa/etiqueta/faturável). A CLI Python se instala sozinha na primeira sessão
+  (requer [`uv`](https://docs.astral.sh/uv/)).
+- Funciona em **macOS, Windows e Linux**. A única dependência é o **`uv`** —
+  **não precisa ter Python instalado** (o `uv` baixa um Python gerenciado sozinho). Instalar `uv`:
+  - macOS/Linux: `curl -LsSf https://astral.sh/uv/install.sh | sh`
+  - Windows (PowerShell): `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
+  - Se você não tiver `uv`, o `/clockify-setup` se oferece para instalá-lo.
+- Sua config fica em `~/.config/clockify-horas/config.json` (macOS/Linux) ou
+  `%APPDATA%\clockify-horas\config.json` (Windows) — só sua, fora do repo.
 
 ## Uso
 
-No Claude Code:
 - `/horas` (ou `/horas 2026-01-28`) — lança um dia a partir da agenda do Outlook.
-- `/lancar` — lança em vários dias de uma vez (ex: maio retroativo).
+- `/lancar` — lança vários dias de uma vez (ex: mês retroativo). Funciona sem ICS.
 
 ## CLI direta
 
 ```bash
-uv run clockify-horas agenda --date 2026-01-28
-uv run clockify-horas meta
-uv run clockify-horas entries --date 2026-01-28
-uv run clockify-horas business-days --start 2026-05-01 --end 2026-05-31
-uv run clockify-horas entries --start 2026-05-01 --end 2026-05-31
-uv run clockify-horas add --file lancamentos.json --dry-run
+clockify-horas config show
+clockify-horas config doctor
+clockify-horas agenda --date 2026-01-28
+clockify-horas meta
+clockify-horas entries --date 2026-01-28
+clockify-horas business-days --start 2026-05-01 --end 2026-05-31
+clockify-horas add --file lancamentos.json --dry-run
 ```
 
-## Estrutura
+## Config (gerada pelo /clockify-setup)
 
+Local: `~/.config/clockify-horas/config.json` (macOS/Linux) ou
+`%APPDATA%\clockify-horas\config.json` (Windows).
+
+```json
+{
+  "clockify": { "api_key": "...", "workspace_id": "..." },
+  "outlook":  { "ics_url": "..." },
+  "defaults": { "task_name": "...", "tag_name": "...", "billable": false, "daily_target_hours": 8.0 },
+  "overrides": []
+}
 ```
-src/clockify_horas/
-  cli.py           # subcomandos: agenda, meta, entries, business-days, add
-  ics.py           # fetch + parse ICS (expande recorrências)
-  clockify_api.py  # client HTTP da API Clockify
-  entries.py       # lógica pura (payload, totais, UTC)
-  bizdays.py       # dias úteis de um intervalo
-  config.py        # .env + defaults.json
-  models.py        # dataclasses
-.claude/commands/  # /horas e /lancar
-tests/             # pytest + respx (sem chamadas reais)
-```
+
+Variáveis de ambiente (`CLOCKIFY_API_KEY`, `CLOCKIFY_WORKSPACE_ID`, `OUTLOOK_ICS_URL`) têm
+precedência sobre o arquivo (útil em CI).
 
 ## Dev
 
 ```bash
-uv run pytest -q       # testes
-uv run ruff check .    # lint
-uv run pyright         # type check
+uv sync
+uv run pytest -q
+uv run ruff check .
+uv run pyright
 ```
 
+Mantenedor: ver `MAINTAINER.md`.
