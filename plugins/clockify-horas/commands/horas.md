@@ -18,9 +18,14 @@ Você usa essa lista para reconhecer as reuniões do dia.
 Siga este fluxo, um passo de cada vez:
 
 1. **Ler a agenda.** Rode `clockify-horas agenda --date <data>`. Se o comando avisar que o
-   ICS não está configurado, pule a agenda e siga pelo passo 3 (a pessoa dita as atividades).
+   ICS não está configurado, pule a agenda — sem ela a pessoa dita as atividades no passo 4 e
+   o resto do fluxo é igual.
 
-2. **Reconhecer cada reunião.** Para cada evento, escolha para onde lançar pela
+2. **Anti-duplicata (antes de mais nada).** Rode `clockify-horas entries --date <data>`. Se já
+   houver lançamentos nessa data, avise, mostre o que existe, e pergunte se quer continuar
+   mesmo assim. Se a pessoa não quiser, pare aqui — assim você não refaz o trabalho à toa.
+
+3. **Reconhecer cada reunião.** Para cada evento, escolha para onde lançar pela
    **precedência**:
    1. **Atividade aprendida** — se o título for igual, parecido, ou contiver a palavra-chave
       (`match`) de alguma atividade aprendida, use os campos dela
@@ -28,9 +33,6 @@ Siga este fluxo, um passo de cada vez:
    2. **Atividade padrão** — se não reconhecer e existir um default, proponha o default.
    3. **Perguntar** — se não reconhecer e não houver default, pergunte em linguagem comum de
       qual cliente/projeto é aquilo.
-
-3. **Anti-duplicata.** Rode `clockify-horas entries --date <data>`. Se já houver lançamentos
-   nessa data, avise, mostre o que existe, e pergunte se quer continuar.
 
 4. **Trabalho avulso.** Pergunte o que mais a pessoa fez no dia além das reuniões (com
    horário de início/fim). Acrescente, reconhecendo pela mesma precedência.
@@ -49,14 +51,15 @@ Siga este fluxo, um passo de cada vez:
    citar uma tarefa/etiqueta que você não conhece, valide contra `clockify-horas meta`; se
    não existir, mostre as opções.
 
-6. **Aprender um padrão (opcional, com consentimento).** Se você perceber que uma palavra
+6. **Total do dia.** Some as durações e informe o total. Se fugir muito da meta (8h, ou o
+   `daily_target_hours` da config), avise sem bloquear.
+
+7. **Aprender um padrão (opcional, com consentimento).** Se você perceber que uma palavra
    aparece sempre ligada ao mesmo cliente, pergunte UMA vez, em português: "Toda vez que
    aparecer '<palavra>', já lanço em <projeto> faturável?". Só com o "sim", rode
    `clockify-horas learned add --match "<palavra>" --project "..." --task "..." --tag "..." --billable`
-   (use `--no-billable` se não for faturável; `--tag` é opcional). Nunca diga "override".
-
-7. **Total do dia.** Some as durações e informe o total. Se fugir muito da meta (8h, ou o
-   `daily_target_hours` da config), avise sem bloquear.
+   (use `--no-billable` se não for faturável; `--tag` e `--project` são opcionais — omita
+   `--project` se a tarefa tiver nome único). Nunca diga "override".
 
 8. **Conferir e gravar.** Monte internamente o JSON da lista — uma lista de objetos com
    EXATAMENTE estes campos (`tag_names` é **lista**, mesmo com uma etiqueta só; `start`/`end`
@@ -78,9 +81,10 @@ Siga este fluxo, um passo de cada vez:
 
    Inclua `project_name` quando a tarefa existir em mais de um projeto (a maioria, em
    consultoria); omita se o nome da tarefa for único. Salve num arquivo temporário e rode
-   `clockify-horas add --file <tmp> --dry-run` para conferir. Mostre o resumo **em linguagem
-   comum** (a tabela do passo 5, não os payloads crus) e peça confirmação. Só após o "pode
-   lançar", rode `clockify-horas add --file <tmp>` (sem `--dry-run`) e reporte o que foi criado.
+   `clockify-horas add --file <tmp> --dry-run` para conferir. **O `--dry-run` imprime o JSON
+   cru no terminal — descarte essa saída; ao usuário, mostre só a tabela do passo 5** e peça
+   confirmação. Só após o "pode lançar", rode `clockify-horas add --file <tmp>` (sem
+   `--dry-run`) e reporte o que foi criado, em linguagem comum.
 
 Nunca grave sem conferir antes (passo 8). A pessoa nunca precisa ver JSON, IDs ou termos
 técnicos.
