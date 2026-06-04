@@ -268,6 +268,22 @@ def test_workspaces_lista(monkeypatch, tmp_path, capsys):
     assert out == [{"id": "W1", "name": "Um"}, {"id": "W2", "name": "Dois"}]
 
 
+@respx.mock
+def test_config_doctor_sem_default_neutro(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    monkeypatch.chdir(tmp_path)
+    for var in ("CLOCKIFY_API_KEY", "CLOCKIFY_WORKSPACE_ID", "OUTLOOK_ICS_URL"):
+        monkeypatch.delenv(var, raising=False)
+    main(["config", "set", "--api-key", "K", "--workspace-id", "W"])  # sem defaults
+    capsys.readouterr()  # descarta o "Config atualizada: ..." do set
+    respx.get(f"{BASE}/workspaces").mock(return_value=httpx.Response(200, json=[{"id": "W"}]))
+    rc = main(["config", "doctor"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "sem atividade padrão" in out
+    assert "tarefa default" not in out  # não vaza "tarefa default 'None' não encontrada"
+
+
 def test_suggest_match_e_miss(monkeypatch, tmp_path, capsys):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
     from clockify_horas.history import record_entry

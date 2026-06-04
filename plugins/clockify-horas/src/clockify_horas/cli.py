@@ -273,20 +273,26 @@ def _cmd_config_doctor(args: argparse.Namespace) -> int:
         print(f"FAIL: workspace '{cfg.workspace_id}' não está entre os seus workspaces.")
         return 1
 
-    try:
-        d = load_defaults()
-        md = client.get_metadata()
-        task_names = {name for (_pid, name) in md.tasks}
-        if d.task_name in task_names:
-            print(f"OK: tarefa default '{d.task_name}' existe.")
+    d = load_defaults()
+    if d.task_name is None and d.tag_name is None:
+        print("OK: sem atividade padrão (aprendo pelas suas atividades).")
+    else:
+        try:
+            md = client.get_metadata()
+        except httpx.HTTPError:
+            print("WARN: erro ao buscar metadata para validar a atividade padrão.")
         else:
-            print(f"WARN: tarefa default '{d.task_name}' não encontrada no workspace.")
-        if d.tag_name in md.tags:
-            print(f"OK: etiqueta default '{d.tag_name}' existe.")
-        else:
-            print(f"WARN: etiqueta default '{d.tag_name}' não encontrada.")
-    except (ValueError, httpx.HTTPError):
-        print("WARN: defaults ainda não configurados ou erro ao buscar metadata.")
+            if d.task_name is not None:
+                task_names = {name for (_pid, name) in md.tasks}
+                if d.task_name in task_names:
+                    print(f"OK: tarefa default '{d.task_name}' existe.")
+                else:
+                    print(f"WARN: tarefa default '{d.task_name}' não encontrada no workspace.")
+            if d.tag_name is not None:
+                if d.tag_name in md.tags:
+                    print(f"OK: etiqueta default '{d.tag_name}' existe.")
+                else:
+                    print(f"WARN: etiqueta default '{d.tag_name}' não encontrada.")
 
     if cfg.ics_url:
         try:
