@@ -16,7 +16,7 @@ from clockify_horas.models import CalEvent, Metadata, TimeEntry
 TZ = ZoneInfo("America/Sao_Paulo")
 
 DEFAULTS = Defaults(
-    task_name=".Célula de Inovação: Time IA",
+    task_name=".Etiqueta Demo: Equipe Demo",
     tag_name="Atividades Internas",
     billable=False,
     daily_target_hours=8.0,
@@ -26,7 +26,7 @@ META = Metadata(
     workspace_id="ws1",
     user_id="u1",
     projects={"Procurement Garage": "p1"},
-    tasks={("p1", ".Célula de Inovação: Time IA"): "t1"},
+    tasks={("p1", ".Etiqueta Demo: Equipe Demo"): "t1"},
     tags={"Atividades Internas": "g1"},
 )
 
@@ -39,7 +39,7 @@ def test_from_event_aplica_defaults():
     )
     entry = from_event(ev, DEFAULTS)
     assert entry.description == "Reunião Cliente X"
-    assert entry.task_name == ".Célula de Inovação: Time IA"
+    assert entry.task_name == ".Etiqueta Demo: Equipe Demo"
     assert entry.tag_names == ["Atividades Internas"]
     assert entry.billable is False
     assert entry.start == ev.start
@@ -51,7 +51,7 @@ def test_day_total_hours_soma_duracoes():
             "a",
             datetime(2026, 1, 28, 9),
             datetime(2026, 1, 28, 11),
-            ".Célula de Inovação: Time IA",
+            ".Etiqueta Demo: Equipe Demo",
             ["t"],
             False,
         ),
@@ -59,7 +59,7 @@ def test_day_total_hours_soma_duracoes():
             "b",
             datetime(2026, 1, 28, 13),
             datetime(2026, 1, 28, 16),
-            ".Célula de Inovação: Time IA",
+            ".Etiqueta Demo: Equipe Demo",
             ["t"],
             False,
         ),
@@ -88,7 +88,7 @@ def _entry() -> TimeEntry:
         description="Reunião Cliente X",
         start=datetime(2026, 1, 28, 13, 0, tzinfo=TZ),
         end=datetime(2026, 1, 28, 14, 0, tzinfo=TZ),
-        task_name=".Célula de Inovação: Time IA",
+        task_name=".Etiqueta Demo: Equipe Demo",
         tag_names=["Atividades Internas"],
         billable=False,
     )

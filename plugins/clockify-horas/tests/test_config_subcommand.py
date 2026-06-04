@@ -43,9 +43,9 @@ def test_config_set_cria_e_atualiza(monkeypatch, tmp_path):
             "--ics-url",
             "https://x/cal.ics",
             "--task",
-            "Time IA",
+            "Equipe Demo",
             "--tag",
-            "Célula de Inovação",
+            "Etiqueta Demo",
             "--no-billable",
             "--daily-target",
             "8",
@@ -56,8 +56,8 @@ def test_config_set_cria_e_atualiza(monkeypatch, tmp_path):
     assert data["clockify"] == {"api_key": "K", "workspace_id": "W"}
     assert data["outlook"] == {"ics_url": "https://x/cal.ics"}
     assert data["defaults"] == {
-        "task_name": "Time IA",
-        "tag_name": "Célula de Inovação",
+        "task_name": "Equipe Demo",
+        "tag_name": "Etiqueta Demo",
         "billable": False,
         "daily_target_hours": 8.0,
     }
@@ -103,7 +103,7 @@ def test_config_add_override(monkeypatch, tmp_path):
             "config",
             "add-override",
             "--match",
-            "San Pablo",
+            "Cliente Demo",
             "--task",
             "Assinatura",
             "--tag",
@@ -115,7 +115,7 @@ def test_config_add_override(monkeypatch, tmp_path):
     data = json.loads(config_path().read_text(encoding="utf-8"))
     assert data["overrides"] == [
         {
-            "match": "San Pablo",
+            "match": "Cliente Demo",
             "task_name": "Assinatura",
             "tag_name": "Implantação",
             "billable": True,

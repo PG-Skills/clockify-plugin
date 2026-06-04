@@ -87,7 +87,7 @@ def test_load_defaults_do_config(monkeypatch, tmp_path):
     write_raw(
         {
             "defaults": {
-                "task_name": "Time IA",
+                "task_name": "Equipe Demo",
                 "tag_name": "Atividades Internas",
                 "billable": False,
                 "daily_target_hours": 8.0,
@@ -96,7 +96,7 @@ def test_load_defaults_do_config(monkeypatch, tmp_path):
     )
     d = load_defaults()
     assert d == Defaults(
-        task_name="Time IA",
+        task_name="Equipe Demo",
         tag_name="Atividades Internas",
         billable=False,
         daily_target_hours=8.0,
@@ -124,7 +124,7 @@ def test_load_overrides(monkeypatch, tmp_path):
         {
             "overrides": [
                 {
-                    "match": "San Pablo",
+                    "match": "Cliente Demo",
                     "task_name": "Assinatura",
                     "tag_name": "Implantação",
                     "billable": True,
@@ -134,7 +134,7 @@ def test_load_overrides(monkeypatch, tmp_path):
     )
     assert load_overrides() == [
         Override(
-            match="San Pablo",
+            match="Cliente Demo",
             task_name="Assinatura",
             tag_name="Implantação",
             billable=True,

@@ -28,7 +28,7 @@ def test_get_metadata_monta_indices():
     )
     respx.get(f"{BASE}/workspaces/ws1/projects/p1/tasks").mock(
         return_value=httpx.Response(
-            200, json=[{"id": "t1", "name": ".Célula de Inovação: Time IA"}]
+            200, json=[{"id": "t1", "name": ".Etiqueta Demo: Equipe Demo"}]
         )
     )
     respx.get(f"{BASE}/workspaces/ws1/tags").mock(
@@ -37,7 +37,7 @@ def test_get_metadata_monta_indices():
     md = _client().get_metadata()
     assert md.user_id == "u1"
     assert md.projects["Procurement Garage"] == "p1"
-    assert md.tasks[("p1", ".Célula de Inovação: Time IA")] == "t1"
+    assert md.tasks[("p1", ".Etiqueta Demo: Equipe Demo")] == "t1"
     assert md.tags["Atividades Internas"] == "g1"
 
 

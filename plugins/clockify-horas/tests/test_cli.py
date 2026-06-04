@@ -21,7 +21,7 @@ def test_agenda_imprime_json(monkeypatch, capsys, sample_ics):
     rc = main(["agenda", "--date", "2026-01-28"])
     assert rc == 0
     out = json.loads(capsys.readouterr().out)
-    assert [e["title"] for e in out] == ["Daily Time IA", "Reunião Cliente X"]
+    assert [e["title"] for e in out] == ["Daily Equipe Demo", "Reunião Cliente X"]
     assert out[0]["start"].startswith("2026-01-28T09:00")
 
 
@@ -36,7 +36,7 @@ def test_add_dry_run_nao_posta(monkeypatch, capsys, tmp_path):
     )
     respx.get(f"{BASE}/workspaces/ws1/projects/p1/tasks").mock(
         return_value=httpx.Response(
-            200, json=[{"id": "t1", "name": ".Célula de Inovação: Time IA"}]
+            200, json=[{"id": "t1", "name": ".Etiqueta Demo: Equipe Demo"}]
         )
     )
     respx.get(f"{BASE}/workspaces/ws1/tags").mock(
@@ -51,7 +51,7 @@ def test_add_dry_run_nao_posta(monkeypatch, capsys, tmp_path):
                     "description": "Reunião Cliente X",
                     "start": "2026-01-28T13:00:00-03:00",
                     "end": "2026-01-28T14:00:00-03:00",
-                    "task_name": ".Célula de Inovação: Time IA",
+                    "task_name": ".Etiqueta Demo: Equipe Demo",
                     "tag_names": ["Atividades Internas"],
                     "billable": False,
                 }
@@ -75,7 +75,7 @@ def test_add_real_posta(monkeypatch, tmp_path):
     )
     respx.get(f"{BASE}/workspaces/ws1/projects/p1/tasks").mock(
         return_value=httpx.Response(
-            200, json=[{"id": "t1", "name": ".Célula de Inovação: Time IA"}]
+            200, json=[{"id": "t1", "name": ".Etiqueta Demo: Equipe Demo"}]
         )
     )
     respx.get(f"{BASE}/workspaces/ws1/tags").mock(
@@ -92,7 +92,7 @@ def test_add_real_posta(monkeypatch, tmp_path):
                     "description": "Reunião Cliente X",
                     "start": "2026-01-28T13:00:00-03:00",
                     "end": "2026-01-28T14:00:00-03:00",
-                    "task_name": ".Célula de Inovação: Time IA",
+                    "task_name": ".Etiqueta Demo: Equipe Demo",
                     "tag_names": ["Atividades Internas"],
                     "billable": False,
                 }
@@ -224,10 +224,10 @@ def test_add_para_limpo_na_falha_parcial(monkeypatch, capsys, tmp_path):
         return_value=httpx.Response(200, json=[{"id": "p1", "name": "Procurement Garage"}])
     )
     respx.get(f"{BASE}/workspaces/ws1/projects/p1/tasks").mock(
-        return_value=httpx.Response(200, json=[{"id": "t1", "name": "Time IA"}])
+        return_value=httpx.Response(200, json=[{"id": "t1", "name": "Equipe Demo"}])
     )
     respx.get(f"{BASE}/workspaces/ws1/tags").mock(
-        return_value=httpx.Response(200, json=[{"id": "g1", "name": "Célula de Inovação"}])
+        return_value=httpx.Response(200, json=[{"id": "g1", "name": "Etiqueta Demo"}])
     )
     respx.post(f"{BASE}/workspaces/ws1/time-entries").mock(
         side_effect=[httpx.Response(201, json={"id": "ok1"}), httpx.Response(500)]
@@ -240,16 +240,16 @@ def test_add_para_limpo_na_falha_parcial(monkeypatch, capsys, tmp_path):
                     "description": "Dia 1",
                     "start": "2026-05-04T09:00:00-03:00",
                     "end": "2026-05-04T10:00:00-03:00",
-                    "task_name": "Time IA",
-                    "tag_names": ["Célula de Inovação"],
+                    "task_name": "Equipe Demo",
+                    "tag_names": ["Etiqueta Demo"],
                     "billable": False,
                 },
                 {
                     "description": "Dia 2",
                     "start": "2026-05-05T09:00:00-03:00",
                     "end": "2026-05-05T10:00:00-03:00",
-                    "task_name": "Time IA",
-                    "tag_names": ["Célula de Inovação"],
+                    "task_name": "Equipe Demo",
+                    "tag_names": ["Etiqueta Demo"],
                     "billable": False,
                 },
             ]
