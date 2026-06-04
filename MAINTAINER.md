@@ -18,7 +18,8 @@ Este repo é, ao mesmo tempo, o **plugin** `clockify-horas` e o **marketplace** 
    O SessionStart hook (`scripts/ensure_cli.py`) lê o `version` do `plugin.json` para decidir
    reinstalar a CLI — então o bump do `plugin.json` é o que faz o colega receber o código novo;
    manter os outros quatro alinhados é o que mantém tudo coerente em 1.0.0, 1.1.0, etc.
-   (v1.1 adiciona `history.json` por-usuário, não versionado, e o subcomando `suggest`.)
+   (v1.0 usa `learned.json` por-usuário, não versionado — as "atividades aprendidas" que
+   substituem o antigo `history.json` e a seção `overrides`. A atividade padrão é opcional.)
 3. `git commit` + `git push` para o branch principal.
 4. Avise a equipe. Cada pessoa atualiza com `/plugin marketplace update` seguido de
    `/plugin update clockify-horas@pg-clockify`. Na próxima sessão, o SessionStart hook

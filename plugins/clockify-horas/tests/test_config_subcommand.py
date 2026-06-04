@@ -96,33 +96,6 @@ def test_config_show_sem_config_erro(monkeypatch, tmp_path, capsys):
     assert "clockify-setup" in capsys.readouterr().err
 
 
-def test_config_add_override(monkeypatch, tmp_path):
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
-    rc = main(
-        [
-            "config",
-            "add-override",
-            "--match",
-            "Cliente Demo",
-            "--task",
-            "Assinatura",
-            "--tag",
-            "Implantação",
-            "--billable",
-        ]
-    )
-    assert rc == 0
-    data = json.loads(config_path().read_text(encoding="utf-8"))
-    assert data["overrides"] == [
-        {
-            "match": "Cliente Demo",
-            "task_name": "Assinatura",
-            "tag_name": "Implantação",
-            "billable": True,
-        }
-    ]
-
-
 def test_config_show_redige_ics_url(monkeypatch, tmp_path, capsys):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
     main(
@@ -228,28 +201,6 @@ def test_config_set_project(monkeypatch, tmp_path):
     assert data["defaults"]["project"] == "Proj A"
 
 
-def test_config_add_override_project(monkeypatch, tmp_path):
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
-    rc = main(
-        [
-            "config",
-            "add-override",
-            "--match",
-            "M",
-            "--task",
-            "T",
-            "--tag",
-            "G",
-            "--billable",
-            "--project",
-            "Proj B",
-        ]
-    )
-    assert rc == 0
-    data = json.loads(config_path().read_text(encoding="utf-8"))
-    assert data["overrides"][0]["project"] == "Proj B"
-
-
 @respx.mock
 def test_workspaces_lista(monkeypatch, tmp_path, capsys):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
@@ -268,19 +219,17 @@ def test_workspaces_lista(monkeypatch, tmp_path, capsys):
     assert out == [{"id": "W1", "name": "Um"}, {"id": "W2", "name": "Dois"}]
 
 
-def test_suggest_match_e_miss(monkeypatch, tmp_path, capsys):
+@respx.mock
+def test_config_doctor_sem_default_neutro(monkeypatch, tmp_path, capsys):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
-    from clockify_horas.history import record_entry
-
-    record_entry("Daily", "Equipe Demo", ["Tag"], False, "Proj A")
-    rc = main(["suggest", "--description", "daily"])
+    monkeypatch.chdir(tmp_path)
+    for var in ("CLOCKIFY_API_KEY", "CLOCKIFY_WORKSPACE_ID", "OUTLOOK_ICS_URL"):
+        monkeypatch.delenv(var, raising=False)
+    main(["config", "set", "--api-key", "K", "--workspace-id", "W"])  # sem defaults
+    capsys.readouterr()  # descarta o "Config atualizada: ..." do set
+    respx.get(f"{BASE}/workspaces").mock(return_value=httpx.Response(200, json=[{"id": "W"}]))
+    rc = main(["config", "doctor"])
+    out = capsys.readouterr().out
     assert rc == 0
-    assert json.loads(capsys.readouterr().out) == {
-        "project_name": "Proj A",
-        "task_name": "Equipe Demo",
-        "tag_names": ["Tag"],
-        "billable": False,
-    }
-    rc = main(["suggest", "--description", "outra"])
-    assert rc == 0
-    assert json.loads(capsys.readouterr().out) == {}
+    assert "sem atividade padrão" in out
+    assert "tarefa default" not in out  # não vaza "tarefa default 'None' não encontrada"

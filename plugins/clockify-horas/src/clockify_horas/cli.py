@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
-from clockify_horas import history
+from clockify_horas import learned
 from clockify_horas.bizdays import business_days
 from clockify_horas.clockify_api import ClockifyClient
 from clockify_horas.config import (
@@ -179,8 +179,12 @@ def _cmd_add(args: argparse.Namespace) -> int:
             )
             return 1
         gravados.append(resp.get("id"))
-        history.record_entry(
-            entry.description, entry.task_name, entry.tag_names, entry.billable, entry.project_name
+        learned.record(
+            match=entry.description,
+            project_name=entry.project_name,
+            task_name=entry.task_name,
+            tag_names=entry.tag_names,
+            billable=entry.billable,
         )
         print(f"Lançado: {p['description']} -> {resp.get('id')}")
     return 0
@@ -191,7 +195,6 @@ def _cmd_config_set(args: argparse.Namespace) -> int:
     ck = data.setdefault("clockify", {})
     ol = data.setdefault("outlook", {})
     df = data.setdefault("defaults", {})
-    data.setdefault("overrides", [])
     if args.api_key is not None:
         ck["api_key"] = args.api_key
     if args.workspace_id is not None:
@@ -232,23 +235,6 @@ def _cmd_config_show(args: argparse.Namespace) -> int:
     return 0
 
 
-def _cmd_config_add_override(args: argparse.Namespace) -> int:
-    data = read_raw()
-    ov = data.setdefault("overrides", [])
-    entry = {
-        "match": args.match,
-        "task_name": args.task,
-        "tag_name": args.tag,
-        "billable": bool(args.billable) if args.billable is not None else False,
-    }
-    if args.project is not None:
-        entry["project"] = args.project
-    ov.append(entry)
-    p = write_raw(data)
-    print(f"Override adicionado ({args.match}): {p}")
-    return 0
-
-
 def _cmd_config_doctor(args: argparse.Namespace) -> int:
     if not read_raw():
         print("FAIL: sem config. Rode /clockify-setup.")
@@ -273,20 +259,26 @@ def _cmd_config_doctor(args: argparse.Namespace) -> int:
         print(f"FAIL: workspace '{cfg.workspace_id}' não está entre os seus workspaces.")
         return 1
 
-    try:
-        d = load_defaults()
-        md = client.get_metadata()
-        task_names = {name for (_pid, name) in md.tasks}
-        if d.task_name in task_names:
-            print(f"OK: tarefa default '{d.task_name}' existe.")
+    d = load_defaults()
+    if d.task_name is None and d.tag_name is None:
+        print("OK: sem atividade padrão (aprendo pelas suas atividades).")
+    else:
+        try:
+            md = client.get_metadata()
+        except httpx.HTTPError:
+            print("WARN: erro ao buscar metadata para validar a atividade padrão.")
         else:
-            print(f"WARN: tarefa default '{d.task_name}' não encontrada no workspace.")
-        if d.tag_name in md.tags:
-            print(f"OK: etiqueta default '{d.tag_name}' existe.")
-        else:
-            print(f"WARN: etiqueta default '{d.tag_name}' não encontrada.")
-    except (ValueError, httpx.HTTPError):
-        print("WARN: defaults ainda não configurados ou erro ao buscar metadata.")
+            if d.task_name is not None:
+                task_names = {name for (_pid, name) in md.tasks}
+                if d.task_name in task_names:
+                    print(f"OK: tarefa default '{d.task_name}' existe.")
+                else:
+                    print(f"WARN: tarefa default '{d.task_name}' não encontrada no workspace.")
+            if d.tag_name is not None:
+                if d.tag_name in md.tags:
+                    print(f"OK: etiqueta default '{d.tag_name}' existe.")
+                else:
+                    print(f"WARN: etiqueta default '{d.tag_name}' não encontrada.")
 
     if cfg.ics_url:
         try:
@@ -301,9 +293,20 @@ def _cmd_config_doctor(args: argparse.Namespace) -> int:
     return 0
 
 
-def _cmd_suggest(args: argparse.Namespace) -> int:
-    s = history.suggest_for(args.description)
-    print(json.dumps(s or {}, ensure_ascii=False, indent=2))
+def _cmd_learned_list(args: argparse.Namespace) -> int:
+    print(json.dumps(learned.read_learned(), ensure_ascii=False, indent=2))
+    return 0
+
+
+def _cmd_learned_add(args: argparse.Namespace) -> int:
+    learned.record(
+        match=args.match,
+        project_name=args.project,
+        task_name=args.task,
+        tag_names=[args.tag] if args.tag else [],
+        billable=bool(args.billable) if args.billable is not None else False,
+    )
+    print(f"Atividade aprendida: {args.match}")
     return 0
 
 
@@ -337,10 +340,6 @@ def build_parser() -> argparse.ArgumentParser:
     p_add.add_argument("--dry-run", action="store_true", help="Imprime payloads sem postar")
     p_add.set_defaults(func=_cmd_add)
 
-    p_sug = sub.add_parser("suggest", help="Sugere projeto/tarefa do histórico por descrição")
-    p_sug.add_argument("--description", required=True, help="Descrição do evento/atividade")
-    p_sug.set_defaults(func=_cmd_suggest)
-
     p_config = sub.add_parser("config", help="Gerencia a config por-usuário")
     config_sub = p_config.add_subparsers(dest="config_cmd", required=True)
 
@@ -363,20 +362,26 @@ def build_parser() -> argparse.ArgumentParser:
     p_show = config_sub.add_parser("show", help="Imprime a config (api_key redigida)")
     p_show.set_defaults(func=_cmd_config_show)
 
-    p_ovr = config_sub.add_parser("add-override", help="Adiciona regra de override por cliente")
-    p_ovr.add_argument("--match", required=True, help="Palavra-chave do cliente/projeto")
-    p_ovr.add_argument("--task", required=True)
-    p_ovr.add_argument("--tag", required=True)
-    p_ovr.add_argument("--project")
-    ovr_bill = p_ovr.add_mutually_exclusive_group()
-    ovr_bill.add_argument(
-        "--billable", dest="billable", action="store_const", const=True, default=None
-    )
-    ovr_bill.add_argument("--no-billable", dest="billable", action="store_const", const=False)
-    p_ovr.set_defaults(func=_cmd_config_add_override)
-
     p_doc = config_sub.add_parser("doctor", help="Valida a config contra a API")
     p_doc.set_defaults(func=_cmd_config_doctor)
+
+    p_learned = sub.add_parser("learned", help="Atividades aprendidas (memória local)")
+    learned_sub = p_learned.add_subparsers(dest="learned_cmd", required=True)
+
+    p_ll = learned_sub.add_parser("list", help="Lista as atividades aprendidas (JSON)")
+    p_ll.set_defaults(func=_cmd_learned_list)
+
+    p_la = learned_sub.add_parser("add", help="Aprende uma atividade por palavra-chave")
+    p_la.add_argument("--match", required=True, help="Palavra-chave ou título a reconhecer")
+    p_la.add_argument("--task", required=True)
+    p_la.add_argument("--tag")
+    p_la.add_argument("--project")
+    la_bill = p_la.add_mutually_exclusive_group()
+    la_bill.add_argument(
+        "--billable", dest="billable", action="store_const", const=True, default=None
+    )
+    la_bill.add_argument("--no-billable", dest="billable", action="store_const", const=False)
+    p_la.set_defaults(func=_cmd_learned_add)
 
     return parser
 

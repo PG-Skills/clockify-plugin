@@ -258,6 +258,11 @@ def test_add_para_limpo_na_falha_parcial(monkeypatch, capsys, tmp_path):
     assert rc == 1
     err = capsys.readouterr().err
     assert "1/2" in err
+    from clockify_horas.learned import read_learned
+
+    learned = read_learned()
+    assert len(learned) == 1
+    assert learned[0]["match"] == "Dia 1"
 
 
 @respx.mock
@@ -387,20 +392,20 @@ def test_add_dry_run_usa_project_name(monkeypatch, tmp_path, capsys):
     payloads = json.loads(capsys.readouterr().out)
     assert payloads[0]["projectId"] == "p2"
     assert payloads[0]["taskId"] == "t2"
-    from clockify_horas.history import suggest_for
+    from clockify_horas.learned import read_learned
 
-    assert suggest_for("x") is None  # dry-run não grava histórico
+    assert read_learned() == []  # dry-run não grava
 
 
 @respx.mock
-def test_add_grava_historico_no_sucesso(monkeypatch, tmp_path):
+def test_add_grava_learned_no_sucesso(monkeypatch, tmp_path):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
     monkeypatch.setenv("CLOCKIFY_API_KEY", "k")
     monkeypatch.setenv("CLOCKIFY_WORKSPACE_ID", "W")
     monkeypatch.setenv("OUTLOOK_ICS_URL", "")
     respx.get(f"{BASE}/user").mock(return_value=httpx.Response(200, json={"id": "u"}))
     respx.get(f"{BASE}/workspaces/W/projects").mock(
-        return_value=httpx.Response(200, json=[{"id": "p1", "name": "Proj A"}])
+        return_value=httpx.Response(200, json=[{"id": "p1", "name": "Proj Demo"}])
     )
     respx.get(f"{BASE}/workspaces/W/projects/p1/tasks").mock(
         return_value=httpx.Response(200, json=[{"id": "t1", "name": "T"}])
@@ -419,21 +424,98 @@ def test_add_grava_historico_no_sucesso(monkeypatch, tmp_path):
             "task_name": "T",
             "tag_names": ["G"],
             "billable": False,
-            "project_name": "Proj A",
+            "project_name": "Proj Demo",
         }
     ]
     f = tmp_path / "e.json"
     f.write_text(json.dumps(item), encoding="utf-8")
     rc = main(["add", "--file", str(f)])
     assert rc == 0
-    from clockify_horas.history import suggest_for
+    from clockify_horas.learned import read_learned
 
-    assert suggest_for("Reunião Recorrente") == {
-        "project_name": "Proj A",
-        "task_name": "T",
-        "tag_names": ["G"],
-        "billable": False,
-    }
+    assert read_learned() == [
+        {
+            "match": "Reunião Recorrente",
+            "project_name": "Proj Demo",
+            "task_name": "T",
+            "tag_names": ["G"],
+            "billable": False,
+        }
+    ]
+
+
+def test_learned_add_acrescenta(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    rc = main(
+        [
+            "learned",
+            "add",
+            "--match",
+            "Cliente Demo",
+            "--project",
+            "Proj Demo",
+            "--task",
+            "Tarefa Demo",
+            "--tag",
+            "Etiqueta Demo",
+            "--billable",
+        ]
+    )
+    assert rc == 0
+    from clockify_horas.learned import read_learned
+
+    assert read_learned() == [
+        {
+            "match": "Cliente Demo",
+            "project_name": "Proj Demo",
+            "task_name": "Tarefa Demo",
+            "tag_names": ["Etiqueta Demo"],
+            "billable": True,
+        }
+    ]
+
+
+def test_learned_add_sem_tag_nem_billable(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    rc = main(["learned", "add", "--match", "M", "--task", "T"])
+    assert rc == 0
+    from clockify_horas.learned import read_learned
+
+    assert read_learned() == [
+        {
+            "match": "M",
+            "project_name": None,
+            "task_name": "T",
+            "tag_names": [],
+            "billable": False,
+        }
+    ]
+
+
+def test_learned_list_imprime(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    from clockify_horas.learned import record
+
+    record("Daily", None, "Tarefa Demo", ["Etiqueta Demo"], False)
+    rc = main(["learned", "list"])
+    assert rc == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out == [
+        {
+            "match": "Daily",
+            "project_name": None,
+            "task_name": "Tarefa Demo",
+            "tag_names": ["Etiqueta Demo"],
+            "billable": False,
+        }
+    ]
+
+
+def test_learned_list_vazio_imprime_lista_vazia(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    rc = main(["learned", "list"])
+    assert rc == 0
+    assert json.loads(capsys.readouterr().out) == []
 
 
 def test_agenda_sem_ics_erro(monkeypatch, tmp_path, capsys):

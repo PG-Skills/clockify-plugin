@@ -1,12 +1,14 @@
 ---
 name: clockify-setup
-description: Onboarding guiado do clockify-horas — configura credenciais Clockify, link ICS do Outlook e defaults (tarefa/etiqueta/faturável) por-usuário, com verificação final. Use na primeira vez ou para reconfigurar.
+description: Onboarding guiado do clockify-horas — configura credenciais Clockify, link ICS do Outlook (opcional) e uma atividade padrão (opcional), com verificação final. Use na primeira vez ou para reconfigurar.
 ---
 
 # Setup guiado do clockify-horas
 
-Conduza a configuração inicial em português, **um passo de cada vez**, sempre delegando o
-I/O ao subcomando `clockify-horas config`. Nunca escreva o arquivo de config diretamente.
+Conduza a configuração inicial em **português simples, sem jargão**, um passo de cada vez,
+sempre delegando o I/O ao subcomando `clockify-horas config`. Nunca escreva o arquivo de
+config diretamente. **A pessoa é leiga: explique cada coisa em uma frase e deixe pular o que
+for opcional.** São **3 perguntas**.
 
 ## Pré-checagem
 
@@ -14,62 +16,64 @@ I/O ao subcomando `clockify-horas config`. Nunca escreva o arquivo de config dir
    - Se o comando **não existir**, a CLI não foi instalada. Isso é raro (o plugin instala via
      SessionStart hook). A única dependência é o **`uv`** — **não é preciso ter Python**: o
      `uv` baixa um Python gerenciado sozinho. Cheque o `uv` (`command -v uv` no macOS/Linux,
-     `Get-Command uv` no Windows). Se faltar, **ofereça instalá-lo para a pessoa (com
-     consentimento)** rodando o instalador oficial do SO detectado:
+     `Get-Command uv` no Windows). Se faltar, **ofereça instalá-lo (com consentimento)**:
      - **macOS/Linux:** `curl -LsSf https://astral.sh/uv/install.sh | sh`
      - **Windows (PowerShell):** `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
-     Depois de instalar o `uv`, peça para **reabrir a sessão do Claude Code** (o SessionStart
-     hook então instala a CLI — baixando o Python se necessário). Se mesmo assim o
-     `clockify-horas` não estiver no PATH, rode `uv tool update-shell` e reabra o terminal.
+     Depois, peça para **reabrir a sessão do Claude Code** (o hook instala a CLI). Se mesmo
+     assim não estiver no PATH, rode `uv tool update-shell` e reabra o terminal.
 2. Rode `clockify-horas config show`. Se já houver config, pergunte se a pessoa quer
    **reconfigurar** (sobrescreve campos) ou sair.
 
-## Passos
+## Pergunta 1 — Conectar ao Clockify
 
-1. **API key.** Explique o caminho: Clockify → canto inferior esquerdo (perfil) →
-   *Preferences* → aba *Advanced* (ou *Profile Settings → API*) → *Generate*. Peça a key e
-   rode `clockify-horas config set --api-key "<KEY>"`.
+"Cola sua chave do Clockify aqui. Onde pegar: abra o Clockify → canto inferior esquerdo
+(seu perfil) → *Preferences* → aba *Advanced* (ou *Profile Settings → API*) → *Generate*."
+Pegue a key e rode `clockify-horas config set --api-key "<KEY>"`.
 
-2. **Workspace.** Rode `clockify-horas workspaces` — ele lista os workspaces da conta
-   (precisa só da api key; ainda não há workspace configurado).
-   - Se falhar com erro de auth, a key está errada — volte ao passo 1.
-   - Se houver só **um** workspace, defina-o sozinho (sem perguntar).
-   - Se houver vários, liste-os **numerados** e peça o número.
-   - Grave com `clockify-horas config set --workspace-id "<ID>"`.
-   - (Só depois disso o `clockify-horas meta` funciona — ele é usado no passo de Defaults
-     para listar tarefas/etiquetas do workspace escolhido.)
+Depois, descubra o workspace: rode `clockify-horas workspaces` (precisa só da api key).
+- Se a key falhar (erro de auth), está errada — peça de novo.
+- Se houver **um** workspace, escolha-o sozinho (sem perguntar).
+- Se houver **vários**, liste-os **numerados** e peça o número.
+Grave com `clockify-horas config set --workspace-id "<ID>"`.
 
-3. **Link ICS do Outlook.** Explique: Outlook web → *Configurações* → *Calendário* →
-   *Calendários compartilhados* → *Publicar um calendário* → escolha o calendário e a
-   permissão → copie o link **.ics** (ICS, não o HTML). Peça o link e rode
-   `clockify-horas config set --ics-url "<URL>"`. Diga que isso é opcional para quem só usa
-   `/lancar`, mas necessário para `/horas`.
+## Pergunta 2 — Agenda do Outlook (opcional, pode pular)
 
-4. **Defaults.** A partir da saída de `meta`, mostre as **tarefas** e **etiquetas** reais
-   como listas **numeradas**. Atenção ao formato: em `meta`, `tasks` vem com chave
-   `"<projectId> :: <nome da tarefa>"` — mostre ao usuário e use no `--task` **somente o nome
-   da tarefa** (a parte depois de ` :: `), nunca o `projectId`. `tags` vem como `nome → id` —
-   use o nome. Peça:
-   - tarefa padrão (número) → `--task "<nome exato da tarefa>"`
-   - etiqueta padrão (número) → `--tag "<nome exato da etiqueta>"`
-   - faturável por padrão? (sim/não) → `--billable` ou `--no-billable`
-   - meta diária de horas (Enter para 8) → `--daily-target <n>`
-   - (Opcional) projeto do default, se a tarefa default existir em mais de um projeto →
-     `--project "<nome do projeto>"`. Se a tarefa default for de nome único no workspace,
-     pode pular.
-   Grave tudo numa chamada: `clockify-horas config set --task "..." --tag "..." --no-billable --daily-target 8` (acrescente `--project "..."` se aplicável).
+"Quer que eu puxe sua agenda automática? Cola o link do calendário publicado — ou **pula**,
+que aí você me dita as horas e funciona igual."
+- Como pegar o link: Outlook web → *Configurações* → *Calendário* → *Calendários
+  compartilhados* → *Publicar um calendário* → escolha o calendário e a permissão → copie o
+  link **.ics** (o ICS, não o HTML).
+- Se a pessoa colar o link: `clockify-horas config set --ics-url "<URL>"`.
+- Se pular: não grave nada. (Sem ICS, `/horas` funciona pela ditada e `/lancar` funciona
+  normalmente.)
 
-5. **Overrides de cliente (opcional, pulável).** Pergunte: "Quer pré-declarar algum cliente
-   com tarefa/etiqueta/faturável diferentes do padrão? (pode pular e adicionar depois)".
-   - Default: pular. Se sim, para cada cliente: peça palavra-chave (`match`), tarefa,
-     etiqueta e faturável, e rode (use `--billable` para faturável, `--no-billable` caso contrário):
-     `clockify-horas config add-override --match "..." --task "..." --tag "..." --billable`.
-   - Valide os nomes contra `meta` (mesmo formato do passo 4: use só o nome da tarefa).
+## Pergunta 3 — Atividade padrão (opcional)
 
-6. **Prova.** Rode `clockify-horas config doctor` e mostre o resumo. Linhas `OK` = ótimo;
-   `WARN` de ICS é aceitável para quem não usa `/horas`; qualquer `FAIL` precisa ser
-   corrigido (volte ao passo correspondente). Ofereça rodar `/horas <hoje>` em **dry-run**
-   para a pessoa ver o fluxo sem gravar nada.
+Explique e deixe pular: "Quer configurar uma **atividade padrão**? É a tarefa que entra na
+maioria dos seus lançamentos — útil se a maior parte do seu dia é uma coisa só (ex.: trabalho
+interno), porque você não reinforma toda vez. **Se você atua em vários projetos/clientes sem
+uma atividade dominante, pode pular** — aí eu aprendo suas atividades conforme você lança e
+pergunto quando precisar."
 
-Ao final, diga que a pessoa já pode usar `/horas` (um dia via Outlook) e `/lancar`
-(vários dias). Reconfigurar é só rodar `/clockify-setup` de novo.
+- Se **sim**: a partir da saída de `clockify-horas meta`, mostre as **tarefas** e
+  **etiquetas** reais como listas **numeradas**. Atenção ao formato: em `meta`, `tasks` vem
+  com chave `"<projectId> :: <nome da tarefa>"` — use no `--task` **somente o nome da tarefa**
+  (a parte depois de ` :: `), nunca o `projectId`. `tags` vem como `nome → id` — use o nome.
+  Pergunte: tarefa padrão (número), etiqueta padrão (número), e "essas horas são faturáveis?
+  (sim/não)". Grave numa chamada:
+  `clockify-horas config set --task "<nome da tarefa>" --tag "<nome da etiqueta>" --billable`
+  (use `--no-billable` se não for faturável). **Só** se a tarefa escolhida existir em mais de
+  um projeto, pergunte o projeto e acrescente `--project "<nome do projeto>"`; se for de nome
+  único, não toque nisso (invisível).
+- Se **não**: não grave nada. A meta diária fica 8h silenciosa (ajustável depois com
+  `clockify-horas config set --daily-target <n>`, se a pessoa pedir).
+
+## Prova final
+
+Rode `clockify-horas config doctor` e mostre o resultado **em linguagem comum**. Tudo `OK` =
+ótimo; `WARN` de ICS é normal para quem pulou a agenda; "sem atividade padrão" é normal para
+quem pulou a pergunta 3; qualquer `FAIL` precisa ser corrigido (volte à pergunta
+correspondente).
+
+Ao final, diga em português comum: "Testei, tá tudo certo! ✅ Agora é só `/horas` (lança o
+dia) ou `/lancar` (vários dias)." Reconfigurar é só rodar `/clockify-setup` de novo.

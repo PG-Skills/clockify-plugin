@@ -20,10 +20,11 @@ CLI fina (`clockify-horas`) que lê a agenda do Outlook (ICS) e grava lançament
 Clockify via API REST. Separação **cérebro / IO**: o slash command orquestra a conversa,
 a CLI só executa I/O confiável.
 
-- `cli.py` — subcomandos `agenda`, `meta`, `entries` (`--date` ou `--start/--end`), `business-days`, `add` (`--dry-run`).
+- `cli.py` — subcomandos `agenda`, `meta`, `entries` (`--date` ou `--start/--end`), `business-days`, `add` (`--dry-run`), `learned` (`list`/`add`).
 - `ics.py` — fetch + parse do ICS, **expande recorrências** (`recurring-ical-events`) e ignora `STATUS:CANCELLED`.
 - `clockify_api.py` — client HTTP (base `https://api.clockify.me/api/v1`), metadata paginada, entries por dia/intervalo, create.
-- `entries.py` — lógica pura: `from_event`, totais, `to_utc_iso`, `build_payload` (resolve nomes → IDs).
+- `entries.py` — lógica pura: totais, `to_utc_iso`, `build_payload` (resolve nomes → IDs).
+- `learned.py` — store das atividades aprendidas (`learned.json`): `record` upsert por `match`, `read_learned`.
 - `bizdays.py` — dias úteis (seg–sex) de um intervalo. `config.py` — config XDG + precedência env. `models.py` — dataclasses.
 - Slash commands: `plugins/clockify-horas/commands/horas.md` (um dia via Outlook), `plugins/clockify-horas/commands/lancar.md` (vários dias / retroativo).
 
@@ -35,8 +36,10 @@ a CLI só executa I/O confiável.
   `/clockify-setup` ou o subcomando `clockify-horas config set`.
 - **Tarefa resolve por NOME, globalmente** (`build_payload._resolve_task`) — o nome precisa
   ser único entre projetos.
-- **Overrides por cliente** vivem na seção `overrides` do config de cada pessoa (regra por
-  palavra-chave `match`). Não há dado de cliente no repo.
+- **Atividades aprendidas** (título/palavra-chave → projeto/tarefa) vivem em
+  `learned.json` por-usuário (fora do repo): o `add` aprende no sucesso e `learned add`
+  registra por palavra-chave. O **Claude** reconhece na conversa; o código não adivinha.
+  Não há dado de cliente no repo.
 - **ICS é opcional**: só o subcomando `agenda` (fluxo `/horas`) precisa dele; `/lancar`
   funciona sem.
 - **Horários em UTC**: conversão de hora local (America/Sao_Paulo) em `to_utc_iso`.

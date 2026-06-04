@@ -17,19 +17,10 @@ class Config:
 
 @dataclass
 class Defaults:
-    task_name: str
-    tag_name: str
-    billable: bool
-    daily_target_hours: float
-    project: str | None = None
-
-
-@dataclass
-class Override:
-    match: str
-    task_name: str
-    tag_name: str
-    billable: bool
+    task_name: str | None = None
+    tag_name: str | None = None
+    billable: bool | None = None
+    daily_target_hours: float = 8.0
     project: str | None = None
 
 
@@ -104,31 +95,18 @@ def load_api_key(use_dotenv: bool = True, path: Path | None = None) -> str:
 
 
 def load_defaults(path: Path | None = None) -> Defaults:
+    """Lê a atividade padrão. Tolerante: sem 'defaults' ou parcial → campos None + 8h.
+
+    Não levanta por campos ausentes/parciais (a atividade padrão é opcional).
+    Valores com tipo inválido (ex.: daily_target_hours não-numérico) ainda podem levantar.
+    """
     d = read_raw(path).get("defaults", {})
-    try:
-        return Defaults(
-            task_name=d["task_name"],
-            tag_name=d["tag_name"],
-            billable=bool(d["billable"]),
-            daily_target_hours=float(d["daily_target_hours"]),
-            project=d.get("project"),
-        )
-    except KeyError as e:
-        raise ValueError(f"defaults incompletos no config ({e}). Rode /clockify-setup.") from e
-
-
-def load_overrides(path: Path | None = None) -> list[Override]:
-    raw = read_raw(path).get("overrides", [])
-    try:
-        return [
-            Override(
-                match=o["match"],
-                task_name=o["task_name"],
-                tag_name=o["tag_name"],
-                billable=bool(o["billable"]),
-                project=o.get("project"),
-            )
-            for o in raw
-        ]
-    except KeyError as e:
-        raise ValueError(f"override incompleto no config ({e}). Verifique config.json.") from e
+    billable = d.get("billable")
+    dth = d.get("daily_target_hours")
+    return Defaults(
+        task_name=d.get("task_name"),
+        tag_name=d.get("tag_name"),
+        billable=bool(billable) if billable is not None else None,
+        daily_target_hours=float(dth) if dth is not None else 8.0,
+        project=d.get("project"),
+    )

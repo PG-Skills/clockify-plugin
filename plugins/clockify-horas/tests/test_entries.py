@@ -3,24 +3,15 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from clockify_horas.config import Defaults
 from clockify_horas.entries import (
     build_payload,
     day_total_hours,
-    from_event,
     target_warning,
     to_utc_iso,
 )
-from clockify_horas.models import CalEvent, Metadata, TimeEntry
+from clockify_horas.models import Metadata, TimeEntry
 
 TZ = ZoneInfo("America/Sao_Paulo")
-
-DEFAULTS = Defaults(
-    task_name=".Etiqueta Demo: Equipe Demo",
-    tag_name="Atividades Internas",
-    billable=False,
-    daily_target_hours=8.0,
-)
 
 META = Metadata(
     workspace_id="ws1",
@@ -29,20 +20,6 @@ META = Metadata(
     tasks={("p1", ".Etiqueta Demo: Equipe Demo"): "t1"},
     tags={"Atividades Internas": "g1"},
 )
-
-
-def test_from_event_aplica_defaults():
-    ev = CalEvent(
-        title="Reunião Cliente X",
-        start=datetime(2026, 1, 28, 13, 0, tzinfo=TZ),
-        end=datetime(2026, 1, 28, 14, 0, tzinfo=TZ),
-    )
-    entry = from_event(ev, DEFAULTS)
-    assert entry.description == "Reunião Cliente X"
-    assert entry.task_name == ".Etiqueta Demo: Equipe Demo"
-    assert entry.tag_names == ["Atividades Internas"]
-    assert entry.billable is False
-    assert entry.start == ev.start
 
 
 def test_day_total_hours_soma_duracoes():
@@ -204,21 +181,3 @@ def test_resolve_project_name_vazio_cai_no_fallback():
     p = build_payload(_dup_entry("Único", project_name=""), _md_dup())
     assert p["projectId"] == "p1"
     assert p["taskId"] == "t3"
-
-
-def test_from_event_propaga_projeto_do_default():
-    from datetime import datetime
-    from zoneinfo import ZoneInfo
-
-    from clockify_horas.config import Defaults
-    from clockify_horas.entries import from_event
-    from clockify_horas.models import CalEvent
-
-    tz = ZoneInfo("America/Sao_Paulo")
-    ev = CalEvent(
-        title="x", start=datetime(2026, 6, 4, 9, tzinfo=tz), end=datetime(2026, 6, 4, 10, tzinfo=tz)
-    )
-    d = Defaults(
-        task_name="T", tag_name="G", billable=False, daily_target_hours=8.0, project="Proj A"
-    )
-    assert from_event(ev, d).project_name == "Proj A"
