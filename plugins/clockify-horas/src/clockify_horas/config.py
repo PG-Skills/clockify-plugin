@@ -116,12 +116,15 @@ def load_defaults(path: Path | None = None) -> Defaults:
 
 def load_overrides(path: Path | None = None) -> list[Override]:
     raw = read_raw(path).get("overrides", [])
-    return [
-        Override(
-            match=o["match"],
-            task_name=o["task_name"],
-            tag_name=o["tag_name"],
-            billable=bool(o["billable"]),
-        )
-        for o in raw
-    ]
+    try:
+        return [
+            Override(
+                match=o["match"],
+                task_name=o["task_name"],
+                tag_name=o["tag_name"],
+                billable=bool(o["billable"]),
+            )
+            for o in raw
+        ]
+    except KeyError as e:
+        raise ValueError(f"override incompleto no config ({e}). Verifique config.json.") from e

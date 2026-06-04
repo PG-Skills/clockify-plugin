@@ -61,10 +61,17 @@ def build_payload(entry: TimeEntry, metadata: Metadata) -> dict:
 
 
 def _resolve_task(task_name: str, metadata: Metadata) -> tuple[str, str]:
-    for (project_id, name), task_id in metadata.tasks.items():
-        if name == task_name:
-            return project_id, task_id
-    raise KeyError(f"Tarefa não encontrada no Clockify: {task_name!r}")
+    matches = [(pid, tid) for (pid, name), tid in metadata.tasks.items() if name == task_name]
+    if not matches:
+        raise KeyError(f"Tarefa não encontrada no Clockify: {task_name!r}")
+    if len(matches) > 1:
+        proj_by_id = {pid: pname for pname, pid in metadata.projects.items()}
+        projs = ", ".join(proj_by_id.get(pid, pid) for pid, _ in matches)
+        raise KeyError(
+            f"Tarefa {task_name!r} ambígua: existe em múltiplos projetos ({projs}). "
+            "Renomeie para um nome único entre projetos."
+        )
+    return matches[0]
 
 
 def _resolve_tag(tag_name: str, metadata: Metadata) -> str:

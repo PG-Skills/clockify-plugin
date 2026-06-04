@@ -123,6 +123,28 @@ def test_config_add_override(monkeypatch, tmp_path):
     ]
 
 
+def test_config_show_redige_ics_url(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    main(
+        [
+            "config",
+            "set",
+            "--api-key",
+            "SEGREDO",
+            "--workspace-id",
+            "W",
+            "--ics-url",
+            "https://x/cal.ics",
+        ]
+    )
+    capsys.readouterr()
+    rc = main(["config", "show"])
+    assert rc == 0
+    shown = json.loads(capsys.readouterr().out)
+    assert shown["clockify"]["api_key"] == "***"
+    assert shown["outlook"]["ics_url"] == "***"
+
+
 @respx.mock
 def test_config_doctor_ok(monkeypatch, tmp_path, capsys):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))

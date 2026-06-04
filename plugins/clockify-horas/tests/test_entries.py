@@ -119,3 +119,31 @@ def test_build_payload_tag_inexistente_levanta():
     entry.tag_names = ["Tag Inexistente"]
     with pytest.raises(KeyError, match="Tag Inexistente"):
         build_payload(entry, META)
+
+
+def test_build_payload_tarefa_ambigua_levanta():
+    """Tarefa com mesmo nome em dois projetos deve levantar KeyError com 'ambígua'."""
+    meta_dup = Metadata(
+        workspace_id="ws1",
+        user_id="u1",
+        projects={"Proj A": "p1", "Proj B": "p2"},
+        tasks={("p1", "Dup"): "t1", ("p2", "Dup"): "t2"},
+        tags={"Atividades Internas": "g1"},
+    )
+    entry = TimeEntry(
+        description="Teste",
+        start=datetime(2026, 1, 28, 13, 0, tzinfo=TZ),
+        end=datetime(2026, 1, 28, 14, 0, tzinfo=TZ),
+        task_name="Dup",
+        tag_names=["Atividades Internas"],
+        billable=False,
+    )
+    with pytest.raises(KeyError, match="ambígua"):
+        build_payload(entry, meta_dup)
+
+
+def test_build_payload_tarefa_unica_resolve():
+    """Nome único deve continuar resolvendo normalmente."""
+    payload = build_payload(_entry(), META)
+    assert payload["projectId"] == "p1"
+    assert payload["taskId"] == "t1"

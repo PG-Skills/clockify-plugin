@@ -1,4 +1,3 @@
-
 from clockify_horas.config import Defaults, load_config, load_defaults
 
 
@@ -148,3 +147,16 @@ def test_load_overrides_vazio(monkeypatch, tmp_path):
 
     write_raw({})
     assert load_overrides() == []
+
+
+def test_load_overrides_incompleto_levanta(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    from clockify_horas.config import load_overrides, write_raw
+
+    write_raw({"overrides": [{"match": "X"}]})
+    try:
+        load_overrides()
+    except ValueError as e:
+        assert "override incompleto" in str(e)
+    else:
+        raise AssertionError("esperava ValueError")

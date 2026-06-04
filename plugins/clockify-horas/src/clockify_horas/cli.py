@@ -126,21 +126,36 @@ def _cmd_business_days(args: argparse.Namespace) -> int:
 
 def _cmd_add(args: argparse.Namespace) -> int:
     cfg = load_config()
-    raw = json.loads(Path(args.file).read_text(encoding="utf-8"))
-    entries = [
-        TimeEntry(
-            description=item["description"],
-            start=_parse_local(item["start"]),
-            end=_parse_local(item["end"]),
-            task_name=item["task_name"],
-            tag_names=item["tag_names"],
-            billable=bool(item["billable"]),
-        )
-        for item in raw
-    ]
+    try:
+        raw = json.loads(Path(args.file).read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        print(f"erro: arquivo não encontrado: {args.file}", file=sys.stderr)
+        return 1
+    except json.JSONDecodeError as e:
+        print(f"erro: JSON inválido em {args.file}: {e}", file=sys.stderr)
+        return 1
+    try:
+        entries = [
+            TimeEntry(
+                description=item["description"],
+                start=_parse_local(item["start"]),
+                end=_parse_local(item["end"]),
+                task_name=item["task_name"],
+                tag_names=item["tag_names"],
+                billable=bool(item["billable"]),
+            )
+            for item in raw
+        ]
+    except KeyError as e:
+        print(f"erro: campo ausente no JSON do lançamento: {e}", file=sys.stderr)
+        return 1
     client = ClockifyClient(cfg.api_key, cfg.workspace_id)
     md = client.get_metadata()
-    payloads = [build_payload(e, md) for e in entries]
+    try:
+        payloads = [build_payload(e, md) for e in entries]
+    except KeyError as e:
+        print(f"erro: {e}", file=sys.stderr)
+        return 1
 
     if args.dry_run:
         print(json.dumps(payloads, ensure_ascii=False, indent=2))
@@ -204,6 +219,8 @@ def _cmd_config_show(args: argparse.Namespace) -> int:
     red = json.loads(json.dumps(data))
     if red.get("clockify", {}).get("api_key"):
         red["clockify"]["api_key"] = "***"
+    if red.get("outlook", {}).get("ics_url"):
+        red["outlook"]["ics_url"] = "***"
     print(json.dumps(red, ensure_ascii=False, indent=2))
     return 0
 

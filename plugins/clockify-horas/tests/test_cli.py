@@ -35,9 +35,7 @@ def test_add_dry_run_nao_posta(monkeypatch, capsys, tmp_path):
         return_value=httpx.Response(200, json=[{"id": "p1", "name": "Procurement Garage"}])
     )
     respx.get(f"{BASE}/workspaces/ws1/projects/p1/tasks").mock(
-        return_value=httpx.Response(
-            200, json=[{"id": "t1", "name": ".Etiqueta Demo: Equipe Demo"}]
-        )
+        return_value=httpx.Response(200, json=[{"id": "t1", "name": ".Etiqueta Demo: Equipe Demo"}])
     )
     respx.get(f"{BASE}/workspaces/ws1/tags").mock(
         return_value=httpx.Response(200, json=[{"id": "g1", "name": "Atividades Internas"}])
@@ -74,9 +72,7 @@ def test_add_real_posta(monkeypatch, tmp_path):
         return_value=httpx.Response(200, json=[{"id": "p1", "name": "Procurement Garage"}])
     )
     respx.get(f"{BASE}/workspaces/ws1/projects/p1/tasks").mock(
-        return_value=httpx.Response(
-            200, json=[{"id": "t1", "name": ".Etiqueta Demo: Equipe Demo"}]
-        )
+        return_value=httpx.Response(200, json=[{"id": "t1", "name": ".Etiqueta Demo: Equipe Demo"}])
     )
     respx.get(f"{BASE}/workspaces/ws1/tags").mock(
         return_value=httpx.Response(200, json=[{"id": "g1", "name": "Atividades Internas"}])
@@ -260,6 +256,94 @@ def test_add_para_limpo_na_falha_parcial(monkeypatch, capsys, tmp_path):
     assert rc == 1
     err = capsys.readouterr().err
     assert "1/2" in err
+
+
+@respx.mock
+def test_add_arquivo_inexistente_rc1(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    _setup_env(monkeypatch)
+    rc = main(["add", "--file", str(tmp_path / "nao_existe.json")])
+    assert rc == 1
+    err = capsys.readouterr().err
+    assert (
+        "não encontrado" in err.lower() or "not found" in err.lower() or "nao_existe" in err.lower()
+    )
+
+
+@respx.mock
+def test_add_item_sem_tag_names_rc1(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    _setup_env(monkeypatch)
+    respx.get(f"{BASE}/user").mock(return_value=httpx.Response(200, json={"id": "u1"}))
+    respx.get(f"{BASE}/workspaces/ws1/projects").mock(
+        return_value=httpx.Response(200, json=[{"id": "p1", "name": "Procurement Garage"}])
+    )
+    respx.get(f"{BASE}/workspaces/ws1/projects/p1/tasks").mock(
+        return_value=httpx.Response(200, json=[{"id": "t1", "name": ".Etiqueta Demo: Equipe Demo"}])
+    )
+    respx.get(f"{BASE}/workspaces/ws1/tags").mock(
+        return_value=httpx.Response(200, json=[{"id": "g1", "name": "Atividades Internas"}])
+    )
+    entries_file = tmp_path / "entries.json"
+    entries_file.write_text(
+        json.dumps(
+            [
+                {
+                    "description": "Reunião Cliente X",
+                    "start": "2026-01-28T13:00:00-03:00",
+                    "end": "2026-01-28T14:00:00-03:00",
+                    "task_name": ".Etiqueta Demo: Equipe Demo",
+                    # tag_names ausente propositalmente
+                    "billable": False,
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    post_route = respx.post(f"{BASE}/workspaces/ws1/time-entries")
+    rc = main(["add", "--file", str(entries_file)])
+    assert rc == 1
+    assert not post_route.called
+    err = capsys.readouterr().err
+    assert "campo ausente" in err
+
+
+@respx.mock
+def test_add_tarefa_inexistente_rc1(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    _setup_env(monkeypatch)
+    respx.get(f"{BASE}/user").mock(return_value=httpx.Response(200, json={"id": "u1"}))
+    respx.get(f"{BASE}/workspaces/ws1/projects").mock(
+        return_value=httpx.Response(200, json=[{"id": "p1", "name": "Procurement Garage"}])
+    )
+    respx.get(f"{BASE}/workspaces/ws1/projects/p1/tasks").mock(
+        return_value=httpx.Response(200, json=[])  # sem tarefas no workspace
+    )
+    respx.get(f"{BASE}/workspaces/ws1/tags").mock(
+        return_value=httpx.Response(200, json=[{"id": "g1", "name": "Atividades Internas"}])
+    )
+    entries_file = tmp_path / "entries.json"
+    entries_file.write_text(
+        json.dumps(
+            [
+                {
+                    "description": "Reunião Cliente X",
+                    "start": "2026-01-28T13:00:00-03:00",
+                    "end": "2026-01-28T14:00:00-03:00",
+                    "task_name": "Tarefa Inexistente",
+                    "tag_names": ["Atividades Internas"],
+                    "billable": False,
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    post_route = respx.post(f"{BASE}/workspaces/ws1/time-entries")
+    rc = main(["add", "--file", str(entries_file)])
+    assert rc == 1
+    assert not post_route.called
+    err = capsys.readouterr().err
+    assert err.strip()  # alguma mensagem de erro no stderr
 
 
 def test_agenda_sem_ics_erro(monkeypatch, tmp_path, capsys):

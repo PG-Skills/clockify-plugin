@@ -41,17 +41,14 @@ def main() -> int:
         _log("'uv' não encontrado — rode /clockify-setup para instruções de instalação.")
         return 0
 
-    fresh = (
-        stamp.exists()
-        and stamp.read_text(encoding="utf-8").strip() == version
-        and shutil.which("clockify-horas") is not None
-    )
+    marker = f"{version}|{root}"
+    fresh = stamp.exists() and stamp.read_text(encoding="utf-8").strip() == marker
     if fresh:
         return 0
 
     try:
         subprocess.run(["uv", "tool", "install", "--force", root], check=True)
-        stamp.write_text(version, encoding="utf-8")
+        stamp.write_text(marker, encoding="utf-8")
         _log(f"CLI {version} instalada/atualizada.")
     except subprocess.CalledProcessError:
         _log("falha ao instalar a CLI — rode /clockify-setup.")

@@ -2,6 +2,7 @@
   "hooks": {
     "SessionStart": [
       {
+        "matcher": "",
         "hooks": [
           { "type": "command", "command": "uv run --script \"${CLAUDE_PLUGIN_ROOT}/scripts/ensure_cli.py\"" }
         ]
