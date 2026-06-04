@@ -5,11 +5,12 @@ Este repo é, ao mesmo tempo, o **plugin** `clockify-horas` e o **marketplace** 
 ## Cortar um release
 
 1. Faça as mudanças e rode (dentro de `plugins/clockify-horas/`): `uv run pytest -q && uv run ruff check . && uv run pyright`.
-2. Bump da versão em `.claude-plugin/plugin.json` (campo `version`, semver). **Esta é a
-   fonte única da versão**: o SessionStart hook (`scripts/ensure_cli.py`) lê exatamente esse
-   campo para decidir reinstalar a CLI. Bump aqui = colega recebe o código novo na próxima
-   sessão. (O `version` do `pyproject.toml` é interno e não precisa casar; mantenha alinhado
-   só por clareza.)
+2. Bump da versão em **lockstep** nos quatro pontos (semver, mesma versão em todos):
+   `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` (entrada do plugin),
+   `plugins/clockify-horas/pyproject.toml` e `plugins/clockify-horas/src/clockify_horas/__init__.py`.
+   O SessionStart hook (`scripts/ensure_cli.py`) lê o `version` do `plugin.json` para decidir
+   reinstalar a CLI — então o bump do `plugin.json` é o que faz o colega receber o código novo;
+   manter os outros três alinhados é o que mantém tudo coerente em 1.0.0, 1.1.0, etc.
 3. `git commit` + `git push` para o branch principal.
 4. Avise a equipe. Cada pessoa atualiza com `/plugin marketplace update` seguido de
    `/plugin update clockify-horas@pg-clockify`. Na próxima sessão, o SessionStart hook
