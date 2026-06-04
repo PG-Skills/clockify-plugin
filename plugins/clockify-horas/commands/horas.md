@@ -2,48 +2,65 @@
 description: Lança horas do dia no Clockify a partir da agenda do Outlook
 ---
 
-Você vai lançar as horas do dia no Clockify de forma colaborativa. O argumento opcional
-`$ARGUMENTS` pode conter uma data (AAAA-MM-DD); se vazio, use hoje.
+Você vai lançar as horas do dia no Clockify de forma colaborativa, conversando em
+português simples. O argumento opcional `$ARGUMENTS` pode conter uma data (AAAA-MM-DD);
+se vazio, use hoje. **A pessoa é leiga: nunca mostre JSON, IDs, nomes de campo ou termos
+técnicos — você cuida do encanamento.**
 
 Antes de tudo, rode `clockify-horas config show`. Se falhar (sem config), peça para a
-pessoa rodar `/clockify-setup` e pare. Caso contrário, use os `defaults` e `overrides`
-retornados como base dos lançamentos.
+pessoa rodar `/clockify-setup` e pare. Os `defaults` (se existirem) são a **atividade
+padrão**; nem todo mundo tem uma — se não houver, tudo bem.
 
-Siga EXATAMENTE este fluxo, um passo de cada vez, conversando em português:
+Em seguida, rode `clockify-horas learned list` **uma vez** e guarde a lista de **atividades
+aprendidas** (cada uma tem `match`, `project_name`, `task_name`, `tag_names`, `billable`).
+Você usa essa lista para reconhecer as reuniões do dia.
 
-1. **Ler a agenda.** Rode `clockify-horas agenda --date <data>`. **Se o comando avisar que o
-   ICS não está configurado** (sai com erro), pule a leitura da agenda e siga a partir do
-   passo 3, ditando as atividades manualmente. Caso contrário, para CADA evento, rode
-   `clockify-horas suggest --description "<título do evento>"` e monte o candidato pela
-   **precedência: (1) override** cujo `match` aparece na descrição (resolvido no passo 4),
-   **(2) sugestão do histórico** (se `suggest` retornar algo não-vazio, use seus campos —
-   `project_name`/`task_name`/`tag_names`/`billable` — e diga "da última vez foi projeto X /
-   tarefa Y — mantenho?"), **(3) defaults** da config. A saída do `suggest` já vem com as
-   chaves do item do `add` (`project_name`/`task_name`/`tag_names`/`billable`) — use-as
-   **direto** ao montar o JSON, sem renomear (`tag_names` já é lista).
+Siga este fluxo, um passo de cada vez:
 
-2. **Anti-duplicata.** Rode `clockify-horas entries --date <data>`. Se a saída não for
-   vazia, JÁ existem lançamentos nessa data — AVISE, mostre o que existe, e pergunte se
-   quer continuar antes de seguir.
+1. **Ler a agenda.** Rode `clockify-horas agenda --date <data>`. Se o comando avisar que o
+   ICS não está configurado, pule a agenda e siga pelo passo 3 (a pessoa dita as atividades).
 
-3. **Trabalho avulso.** Pergunte o que mais a pessoa fez no dia além das reuniões, com
-   descrição e horários de início/fim. Acrescente como lançamentos.
+2. **Reconhecer cada reunião.** Para cada evento, escolha para onde lançar pela
+   **precedência**:
+   1. **Atividade aprendida** — se o título for igual, parecido, ou contiver a palavra-chave
+      (`match`) de alguma atividade aprendida, use os campos dela
+      (`project_name`/`task_name`/`tag_names`/`billable`) direto, sem renomear.
+   2. **Atividade padrão** — se não reconhecer e existir um default, proponha o default.
+   3. **Perguntar** — se não reconhecer e não houver default, pergunte em linguagem comum de
+      qual cliente/projeto é aquilo.
 
-4. **Overrides + edição colaborativa.** Para cada item, se a descrição casar com o campo
-   `match` de algum override da config, aplique a tarefa/etiqueta/faturável/projeto daquele
-   override — o override declarado tem **prioridade** sobre a sugestão do histórico. Mostre
-   a lista completa em tabela (descrição, horário, projeto, tarefa, etiqueta, faturável,
-   duração). Aceite ajustes em qualquer campo, incluindo troca de projeto ("esse é do
-   projeto Z"). Se a pessoa citar tarefa/etiqueta fora dos defaults/overrides, valide
-   contra `clockify-horas meta`; se não existir, liste as opções e peça correção.
+3. **Anti-duplicata.** Rode `clockify-horas entries --date <data>`. Se já houver lançamentos
+   nessa data, avise, mostre o que existe, e pergunte se quer continuar.
 
-5. **Total do dia.** Some as durações e informe o total. Se fugir do `daily_target_hours`
-   da config além de 15min, avise (sem bloquear).
+4. **Trabalho avulso.** Pergunte o que mais a pessoa fez no dia além das reuniões (com
+   horário de início/fim). Acrescente, reconhecendo pela mesma precedência.
 
-6. **Confirmação + dry-run.** Monte o JSON da lista — uma lista de objetos com EXATAMENTE
-   estes campos (atenção: `tag_names` é uma **lista**, mesmo com uma etiqueta só; `start`/`end`
-   em ISO8601 com hora). Converta o `tag_name` (string) dos defaults/overrides para `tag_names`
-   (lista de um item):
+5. **Revisão simples.** Mostre tudo numa tabela limpa, sem jargão — coluna da reunião e
+   coluna "vou lançar em", com uma nota curta de onde veio:
+
+   ```
+   Reunião                  | Vou lançar em                            |
+   AI Innovation - Daily    | Equipe Demo · Inovação · não-faturável    (você sempre lança assim)
+   Revisão do Cliente       | Proj Demo · Assinatura · faturável        (aprendi com você)
+   Conversa com fornecedor  | ❓ não reconheci — de qual cliente é?
+   ```
+
+   Aceite ajustes em qualquer linha ("esse é do projeto Z", "essa é faturável"). Se a pessoa
+   citar uma tarefa/etiqueta que você não conhece, valide contra `clockify-horas meta`; se
+   não existir, mostre as opções.
+
+6. **Aprender um padrão (opcional, com consentimento).** Se você perceber que uma palavra
+   aparece sempre ligada ao mesmo cliente, pergunte UMA vez, em português: "Toda vez que
+   aparecer '<palavra>', já lanço em <projeto> faturável?". Só com o "sim", rode
+   `clockify-horas learned add --match "<palavra>" --project "..." --task "..." --tag "..." --billable`
+   (use `--no-billable` se não for faturável; `--tag` é opcional). Nunca diga "override".
+
+7. **Total do dia.** Some as durações e informe o total. Se fugir muito da meta (8h, ou o
+   `daily_target_hours` da config), avise sem bloquear.
+
+8. **Conferir e gravar.** Monte internamente o JSON da lista — uma lista de objetos com
+   EXATAMENTE estes campos (`tag_names` é **lista**, mesmo com uma etiqueta só; `start`/`end`
+   em ISO8601 com hora):
 
    ```json
    [
@@ -51,8 +68,8 @@ Siga EXATAMENTE este fluxo, um passo de cada vez, conversando em português:
        "description": "Daily da equipe",
        "start": "2026-06-04T09:00:00",
        "end": "2026-06-04T10:00:00",
-       "task_name": "<task_name do default/override/histórico>",
-       "tag_names": ["<tag_name>"],
+       "task_name": "<tarefa>",
+       "tag_names": ["<etiqueta>"],
        "billable": false,
        "project_name": "<projeto, se a tarefa não for de nome único; senão omita>"
      }
@@ -60,12 +77,10 @@ Siga EXATAMENTE este fluxo, um passo de cada vez, conversando em português:
    ```
 
    Inclua `project_name` quando a tarefa existir em mais de um projeto (a maioria, em
-   workspaces de consultoria); omita se o nome da tarefa for único.
+   consultoria); omita se o nome da tarefa for único. Salve num arquivo temporário e rode
+   `clockify-horas add --file <tmp> --dry-run` para conferir. Mostre o resumo **em linguagem
+   comum** (a tabela do passo 5, não os payloads crus) e peça confirmação. Só após o "pode
+   lançar", rode `clockify-horas add --file <tmp>` (sem `--dry-run`) e reporte o que foi criado.
 
-   Salve em arquivo temporário e rode `clockify-horas add --file <tmp> --dry-run`. Mostre os
-   payloads. Peça confirmação explícita.
-
-7. **Gravar.** Só após o "pode lançar", rode `clockify-horas add --file <tmp>` (sem
-   `--dry-run`). Reporte o resumo do que foi criado.
-
-Nunca pule a confirmação do passo 6. Nunca grave sem dry-run antes.
+Nunca grave sem conferir antes (passo 8). A pessoa nunca precisa ver JSON, IDs ou termos
+técnicos.
