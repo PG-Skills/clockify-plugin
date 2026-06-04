@@ -13,9 +13,14 @@ Siga EXATAMENTE este fluxo, um passo de cada vez, conversando em português:
 
 1. **Ler a agenda.** Rode `clockify-horas agenda --date <data>`. **Se o comando avisar que o
    ICS não está configurado** (sai com erro), pule a leitura da agenda e siga a partir do
-   passo 3, ditando as atividades manualmente. Caso contrário, cada evento vira um lançamento
-   candidato: descrição = título do evento, horários = os do evento, e aplique os `defaults`
-   da config (task_name, tag_name, billable).
+   passo 3, ditando as atividades manualmente. Caso contrário, para CADA evento, rode
+   `clockify-horas suggest --description "<título do evento>"` e monte o candidato pela
+   **precedência: (1) override** cujo `match` aparece na descrição (resolvido no passo 4),
+   **(2) sugestão do histórico** (se `suggest` retornar algo não-vazio, use seus campos —
+   `project_name`/`task_name`/`tag_names`/`billable` — e diga "da última vez foi projeto X /
+   tarefa Y — mantenho?"), **(3) defaults** da config. A saída do `suggest` já vem com as
+   chaves do item do `add` (`project_name`/`task_name`/`tag_names`/`billable`) — use-as
+   **direto** ao montar o JSON, sem renomear (`tag_names` já é lista).
 
 2. **Anti-duplicata.** Rode `clockify-horas entries --date <data>`. Se a saída não for
    vazia, JÁ existem lançamentos nessa data — AVISE, mostre o que existe, e pergunte se
@@ -25,11 +30,12 @@ Siga EXATAMENTE este fluxo, um passo de cada vez, conversando em português:
    descrição e horários de início/fim. Acrescente como lançamentos.
 
 4. **Overrides + edição colaborativa.** Para cada item, se a descrição casar com o campo
-   `match` de algum override da config, aplique a tarefa/etiqueta/faturável daquele
-   override. Mostre a lista completa em tabela (descrição, horário, tarefa, etiqueta,
-   faturável, duração). Aceite ajustes em qualquer campo. Se a pessoa citar tarefa/etiqueta
-   fora dos defaults/overrides, valide contra `clockify-horas meta`; se não existir, liste
-   as opções e peça correção.
+   `match` de algum override da config, aplique a tarefa/etiqueta/faturável/projeto daquele
+   override — o override declarado tem **prioridade** sobre a sugestão do histórico. Mostre
+   a lista completa em tabela (descrição, horário, projeto, tarefa, etiqueta, faturável,
+   duração). Aceite ajustes em qualquer campo, incluindo troca de projeto ("esse é do
+   projeto Z"). Se a pessoa citar tarefa/etiqueta fora dos defaults/overrides, valide
+   contra `clockify-horas meta`; se não existir, liste as opções e peça correção.
 
 5. **Total do dia.** Some as durações e informe o total. Se fugir do `daily_target_hours`
    da config além de 15min, avise (sem bloquear).
@@ -45,12 +51,16 @@ Siga EXATAMENTE este fluxo, um passo de cada vez, conversando em português:
        "description": "Daily da equipe",
        "start": "2026-06-04T09:00:00",
        "end": "2026-06-04T10:00:00",
-       "task_name": "<task_name do default/override>",
-       "tag_names": ["<tag_name do default/override>"],
-       "billable": false
+       "task_name": "<task_name do default/override/histórico>",
+       "tag_names": ["<tag_name>"],
+       "billable": false,
+       "project_name": "<projeto, se a tarefa não for de nome único; senão omita>"
      }
    ]
    ```
+
+   Inclua `project_name` quando a tarefa existir em mais de um projeto (a maioria, em
+   workspaces de consultoria); omita se o nome da tarefa for único.
 
    Salve em arquivo temporário e rode `clockify-horas add --file <tmp> --dry-run`. Mostre os
    payloads. Peça confirmação explícita.

@@ -20,10 +20,15 @@ pessoa rodar `/clockify-setup` e pare. Caso contrário, use `defaults` e `overri
    selecionado, na ordem:
    a. Rode `clockify-horas agenda --date <dia>` para puxar as reuniões. Se o comando
       avisar que não há ICS, siga só com o que a pessoa ditar.
-   b. MOSTRE as reuniões como lançamentos candidatos (defaults aplicados; overrides
-      aplicados quando a descrição casar com algum `match`).
-   c. PERGUNTE: confirma essas reuniões? O que mais fez no dia? Algum item é de outro
-      projeto/tarefa/tag/faturável?
+   b. Para CADA atividade (reunião ou item ditado), rode
+      `clockify-horas suggest --description "<título/descrição>"` e monte o candidato
+      pela **precedência: (1) override** cujo `match` aparece na descrição (tem prioridade
+      sobre a sugestão), **(2) sugestão do histórico** (se `suggest` retornar algo não-vazio,
+      use seus campos — `project_name`/`task_name`/`tag_names`/`billable` — e informe "da
+      última vez foi projeto X / tarefa Y — mantenho?"), **(3) defaults** da config. A saída
+      do `suggest` já vem com as chaves do item do `add` — use-as **direto**, sem renomear.
+   c. MOSTRE as atividades como lançamentos candidatos com a precedência acima aplicada.
+   d. PERGUNTE: confirma? O que mais fez no dia? Algum item é de outro projeto/tarefa/tag/faturável?
    Atalho: a pessoa pode dizer "mesma coisa nos próximos dias" para clonar. Para itens
    fora do default, valide o nome da tarefa/etiqueta contra `clockify-horas meta`.
 
@@ -40,12 +45,16 @@ pessoa rodar `/clockify-setup` e pare. Caso contrário, use `defaults` e `overri
        "description": "Atividade do dia",
        "start": "2026-05-04T09:00:00",
        "end": "2026-05-04T13:00:00",
-       "task_name": "<task_name do default/override>",
-       "tag_names": ["<tag_name do default/override>"],
-       "billable": false
+       "task_name": "<task_name do default/override/histórico>",
+       "tag_names": ["<tag_name>"],
+       "billable": false,
+       "project_name": "<projeto, se a tarefa não for de nome único; senão omita>"
      }
    ]
    ```
+
+   Inclua `project_name` quando a tarefa existir em mais de um projeto (a maioria, em
+   workspaces de consultoria); omita se o nome da tarefa for único.
 
    Salve em arquivo temporário e rode `clockify-horas add --file <tmp> --dry-run`. Mostre os
    payloads. Peça confirmação explícita.

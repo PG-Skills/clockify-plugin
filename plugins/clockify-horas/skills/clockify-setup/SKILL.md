@@ -54,7 +54,10 @@ I/O ao subcomando `clockify-horas config`. Nunca escreva o arquivo de config dir
    - etiqueta padrão (número) → `--tag "<nome exato da etiqueta>"`
    - faturável por padrão? (sim/não) → `--billable` ou `--no-billable`
    - meta diária de horas (Enter para 8) → `--daily-target <n>`
-   Grave tudo numa chamada: `clockify-horas config set --task "..." --tag "..." --no-billable --daily-target 8`.
+   - (Opcional) projeto do default, se a tarefa default existir em mais de um projeto →
+     `--project "<nome do projeto>"`. Se a tarefa default for de nome único no workspace,
+     pode pular.
+   Grave tudo numa chamada: `clockify-horas config set --task "..." --tag "..." --no-billable --daily-target 8` (acrescente `--project "..."` se aplicável).
 
 5. **Overrides de cliente (opcional, pulável).** Pergunte: "Quer pré-declarar algum cliente
    com tarefa/etiqueta/faturável diferentes do padrão? (pode pular e adicionar depois)".
