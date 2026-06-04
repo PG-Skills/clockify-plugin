@@ -266,3 +266,21 @@ def test_workspaces_lista(monkeypatch, tmp_path, capsys):
     assert rc == 0
     out = json.loads(capsys.readouterr().out)
     assert out == [{"id": "W1", "name": "Um"}, {"id": "W2", "name": "Dois"}]
+
+
+def test_suggest_match_e_miss(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    from clockify_horas.history import record_entry
+
+    record_entry("Daily", "Time IA", ["Tag"], False, "Proj A")
+    rc = main(["suggest", "--description", "daily"])
+    assert rc == 0
+    assert json.loads(capsys.readouterr().out) == {
+        "project_name": "Proj A",
+        "task_name": "Time IA",
+        "tag_names": ["Tag"],
+        "billable": False,
+    }
+    rc = main(["suggest", "--description", "outra"])
+    assert rc == 0
+    assert json.loads(capsys.readouterr().out) == {}
