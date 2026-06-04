@@ -282,21 +282,3 @@ def test_config_doctor_sem_default_neutro(monkeypatch, tmp_path, capsys):
     assert rc == 0
     assert "sem atividade padrão" in out
     assert "tarefa default" not in out  # não vaza "tarefa default 'None' não encontrada"
-
-
-def test_suggest_match_e_miss(monkeypatch, tmp_path, capsys):
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
-    from clockify_horas.history import record_entry
-
-    record_entry("Daily", "Equipe Demo", ["Tag"], False, "Proj A")
-    rc = main(["suggest", "--description", "daily"])
-    assert rc == 0
-    assert json.loads(capsys.readouterr().out) == {
-        "project_name": "Proj A",
-        "task_name": "Equipe Demo",
-        "tag_names": ["Tag"],
-        "billable": False,
-    }
-    rc = main(["suggest", "--description", "outra"])
-    assert rc == 0
-    assert json.loads(capsys.readouterr().out) == {}

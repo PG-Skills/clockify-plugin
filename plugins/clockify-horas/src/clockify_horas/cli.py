@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
-from clockify_horas import history, learned
+from clockify_horas import learned
 from clockify_horas.bizdays import business_days
 from clockify_horas.clockify_api import ClockifyClient
 from clockify_horas.config import (
@@ -311,12 +311,6 @@ def _cmd_config_doctor(args: argparse.Namespace) -> int:
     return 0
 
 
-def _cmd_suggest(args: argparse.Namespace) -> int:
-    s = history.suggest_for(args.description)
-    print(json.dumps(s or {}, ensure_ascii=False, indent=2))
-    return 0
-
-
 def _cmd_learned_list(args: argparse.Namespace) -> int:
     print(json.dumps(learned.read_learned(), ensure_ascii=False, indent=2))
     return 0
@@ -363,10 +357,6 @@ def build_parser() -> argparse.ArgumentParser:
     p_add.add_argument("--file", required=True, help="Arquivo JSON com a lista de lançamentos")
     p_add.add_argument("--dry-run", action="store_true", help="Imprime payloads sem postar")
     p_add.set_defaults(func=_cmd_add)
-
-    p_sug = sub.add_parser("suggest", help="Sugere projeto/tarefa do histórico por descrição")
-    p_sug.add_argument("--description", required=True, help="Descrição do evento/atividade")
-    p_sug.set_defaults(func=_cmd_suggest)
 
     p_config = sub.add_parser("config", help="Gerencia a config por-usuário")
     config_sub = p_config.add_subparsers(dest="config_cmd", required=True)
