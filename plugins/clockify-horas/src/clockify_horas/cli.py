@@ -282,7 +282,9 @@ def _cmd_config_doctor(args: argparse.Namespace) -> int:
 
     if cfg.ics_url:
         try:
-            httpx.head(cfg.ics_url, timeout=10.0, follow_redirects=True).raise_for_status()
+            # GET (não HEAD): endpoints ICS do Outlook respondem 405 a HEAD mas 200 a GET —
+            # é o mesmo método que o `agenda` usa para buscar a agenda de verdade.
+            httpx.get(cfg.ics_url, timeout=10.0, follow_redirects=True).raise_for_status()
             print("OK: link ICS acessível.")
         except httpx.HTTPError:
             print("WARN: link ICS não respondeu (necessário só para /horas).")

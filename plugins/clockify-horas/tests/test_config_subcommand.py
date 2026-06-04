@@ -185,7 +185,7 @@ def test_config_doctor_ics_ok(monkeypatch, tmp_path, capsys):
     respx.get(f"{BASE}/user").mock(return_value=httpx.Response(200, json={"id": "U"}))
     respx.get(f"{BASE}/workspaces/W/projects").mock(return_value=httpx.Response(200, json=[]))
     respx.get(f"{BASE}/workspaces/W/tags").mock(return_value=httpx.Response(200, json=[]))
-    respx.head("https://x/cal.ics").mock(return_value=httpx.Response(200))
+    respx.get("https://x/cal.ics").mock(return_value=httpx.Response(200))
     rc = main(["config", "doctor"])
     out = capsys.readouterr().out
     assert rc == 0
