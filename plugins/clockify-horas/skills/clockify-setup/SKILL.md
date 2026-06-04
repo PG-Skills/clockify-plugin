@@ -46,9 +46,12 @@ I/O ao subcomando `clockify-horas config`. Nunca escreva o arquivo de config dir
    `/lancar`, mas necessário para `/horas`.
 
 4. **Defaults.** A partir da saída de `meta`, mostre as **tarefas** e **etiquetas** reais
-   como listas **numeradas**. Peça:
-   - tarefa padrão (número) → `--task "<nome>"`
-   - etiqueta padrão (número) → `--tag "<nome>"`
+   como listas **numeradas**. Atenção ao formato: em `meta`, `tasks` vem com chave
+   `"<projectId> :: <nome da tarefa>"` — mostre ao usuário e use no `--task` **somente o nome
+   da tarefa** (a parte depois de ` :: `), nunca o `projectId`. `tags` vem como `nome → id` —
+   use o nome. Peça:
+   - tarefa padrão (número) → `--task "<nome exato da tarefa>"`
+   - etiqueta padrão (número) → `--tag "<nome exato da etiqueta>"`
    - faturável por padrão? (sim/não) → `--billable` ou `--no-billable`
    - meta diária de horas (Enter para 8) → `--daily-target <n>`
    Grave tudo numa chamada: `clockify-horas config set --task "..." --tag "..." --no-billable --daily-target 8`.
@@ -56,9 +59,9 @@ I/O ao subcomando `clockify-horas config`. Nunca escreva o arquivo de config dir
 5. **Overrides de cliente (opcional, pulável).** Pergunte: "Quer pré-declarar algum cliente
    com tarefa/etiqueta/faturável diferentes do padrão? (pode pular e adicionar depois)".
    - Default: pular. Se sim, para cada cliente: peça palavra-chave (`match`), tarefa,
-     etiqueta e faturável, e rode
+     etiqueta e faturável, e rode (use `--billable` para faturável, `--no-billable` caso contrário):
      `clockify-horas config add-override --match "..." --task "..." --tag "..." --billable`.
-   - Valide os nomes contra `meta`.
+   - Valide os nomes contra `meta` (mesmo formato do passo 4: use só o nome da tarefa).
 
 6. **Prova.** Rode `clockify-horas config doctor` e mostre o resumo. Linhas `OK` = ótimo;
    `WARN` de ICS é aceitável para quem não usa `/horas`; qualquer `FAIL` precisa ser

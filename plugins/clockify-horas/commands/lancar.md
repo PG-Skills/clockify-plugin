@@ -30,9 +30,25 @@ pessoa rodar `/clockify-setup` e pare. Caso contrário, use `defaults` e `overri
 5. **Revisão.** Mostre uma tabela por dia (data, descrição, horário, tarefa, tag,
    faturável, duração) e o total por dia. Avise dias fora do `daily_target_hours` (sem bloquear).
 
-6. **Dry-run.** Monte UM JSON com todos os lançamentos de todos os dias, salve em arquivo
-   temporário e rode `clockify-horas add --file <tmp> --dry-run`. Mostre os payloads.
-   Peça confirmação explícita.
+6. **Dry-run.** Monte UM JSON com todos os lançamentos de todos os dias — uma lista de objetos
+   com EXATAMENTE estes campos (`tag_names` é **lista**, mesmo com uma etiqueta só; `start`/`end`
+   em ISO8601 com hora). Converta o `tag_name` (string) dos defaults/overrides para `tag_names`:
+
+   ```json
+   [
+     {
+       "description": "Atividade do dia",
+       "start": "2026-05-04T09:00:00",
+       "end": "2026-05-04T13:00:00",
+       "task_name": "<task_name do default/override>",
+       "tag_names": ["<tag_name do default/override>"],
+       "billable": false
+     }
+   ]
+   ```
+
+   Salve em arquivo temporário e rode `clockify-horas add --file <tmp> --dry-run`. Mostre os
+   payloads. Peça confirmação explícita.
 
 7. **Gravar.** Só após "pode lançar", rode `clockify-horas add --file <tmp>` (sem
    `--dry-run`). Reporte o resumo por dia. Se o `add` sair com código ≠ 0 (falha parcial),

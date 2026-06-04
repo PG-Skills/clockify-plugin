@@ -11,9 +11,11 @@ retornados como base dos lançamentos.
 
 Siga EXATAMENTE este fluxo, um passo de cada vez, conversando em português:
 
-1. **Ler a agenda.** Rode `clockify-horas agenda --date <data>`. Cada evento vira um
-   lançamento candidato: descrição = título do evento, horários = os do evento, e aplique
-   os `defaults` da config (task_name, tag_name, billable).
+1. **Ler a agenda.** Rode `clockify-horas agenda --date <data>`. **Se o comando avisar que o
+   ICS não está configurado** (sai com erro), pule a leitura da agenda e siga a partir do
+   passo 3, ditando as atividades manualmente. Caso contrário, cada evento vira um lançamento
+   candidato: descrição = título do evento, horários = os do evento, e aplique os `defaults`
+   da config (task_name, tag_name, billable).
 
 2. **Anti-duplicata.** Rode `clockify-horas entries --date <data>`. Se a saída não for
    vazia, JÁ existem lançamentos nessa data — AVISE, mostre o que existe, e pergunte se
@@ -32,9 +34,26 @@ Siga EXATAMENTE este fluxo, um passo de cada vez, conversando em português:
 5. **Total do dia.** Some as durações e informe o total. Se fugir do `daily_target_hours`
    da config além de 15min, avise (sem bloquear).
 
-6. **Confirmação + dry-run.** Monte o JSON da lista, salve em arquivo temporário e rode
-   `clockify-horas add --file <tmp> --dry-run`. Mostre os payloads. Peça confirmação
-   explícita.
+6. **Confirmação + dry-run.** Monte o JSON da lista — uma lista de objetos com EXATAMENTE
+   estes campos (atenção: `tag_names` é uma **lista**, mesmo com uma etiqueta só; `start`/`end`
+   em ISO8601 com hora). Converta o `tag_name` (string) dos defaults/overrides para `tag_names`
+   (lista de um item):
+
+   ```json
+   [
+     {
+       "description": "Daily da equipe",
+       "start": "2026-06-04T09:00:00",
+       "end": "2026-06-04T10:00:00",
+       "task_name": "<task_name do default/override>",
+       "tag_names": ["<tag_name do default/override>"],
+       "billable": false
+     }
+   ]
+   ```
+
+   Salve em arquivo temporário e rode `clockify-horas add --file <tmp> --dry-run`. Mostre os
+   payloads. Peça confirmação explícita.
 
 7. **Gravar.** Só após o "pode lançar", rode `clockify-horas add --file <tmp>` (sem
    `--dry-run`). Reporte o resumo do que foi criado.
