@@ -143,6 +143,7 @@ def _cmd_add(args: argparse.Namespace) -> int:
                 task_name=item["task_name"],
                 tag_names=item["tag_names"],
                 billable=bool(item["billable"]),
+                project_name=item.get("project_name"),
             )
             for item in raw
         ]

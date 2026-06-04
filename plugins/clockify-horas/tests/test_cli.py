@@ -346,6 +346,47 @@ def test_add_tarefa_inexistente_rc1(monkeypatch, tmp_path, capsys):
     assert err.strip()  # alguma mensagem de erro no stderr
 
 
+@respx.mock
+def test_add_dry_run_usa_project_name(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    monkeypatch.setenv("CLOCKIFY_API_KEY", "k")
+    monkeypatch.setenv("CLOCKIFY_WORKSPACE_ID", "W")
+    monkeypatch.setenv("OUTLOOK_ICS_URL", "")
+    respx.get(f"{BASE}/user").mock(return_value=httpx.Response(200, json={"id": "u"}))
+    respx.get(f"{BASE}/workspaces/W/projects").mock(
+        return_value=httpx.Response(
+            200, json=[{"id": "p1", "name": "Proj A"}, {"id": "p2", "name": "Proj B"}]
+        )
+    )
+    respx.get(f"{BASE}/workspaces/W/projects/p1/tasks").mock(
+        return_value=httpx.Response(200, json=[{"id": "t1", "name": "Dup"}])
+    )
+    respx.get(f"{BASE}/workspaces/W/projects/p2/tasks").mock(
+        return_value=httpx.Response(200, json=[{"id": "t2", "name": "Dup"}])
+    )
+    respx.get(f"{BASE}/workspaces/W/tags").mock(
+        return_value=httpx.Response(200, json=[{"id": "g1", "name": "Tag"}])
+    )
+    item = [
+        {
+            "description": "x",
+            "start": "2026-06-04T09:00:00",
+            "end": "2026-06-04T10:00:00",
+            "task_name": "Dup",
+            "tag_names": ["Tag"],
+            "billable": False,
+            "project_name": "Proj B",
+        }
+    ]
+    f = tmp_path / "e.json"
+    f.write_text(json.dumps(item), encoding="utf-8")
+    rc = main(["add", "--file", str(f), "--dry-run"])
+    assert rc == 0
+    payloads = json.loads(capsys.readouterr().out)
+    assert payloads[0]["projectId"] == "p2"
+    assert payloads[0]["taskId"] == "t2"
+
+
 def test_agenda_sem_ics_erro(monkeypatch, tmp_path, capsys):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
     # ICS explicitamente VAZIO ("") — NÃO delenv. `_cmd_agenda` usa load_config(use_dotenv=True),
