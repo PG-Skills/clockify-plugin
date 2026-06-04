@@ -40,12 +40,20 @@ clockify-horas meta
 clockify-horas entries --date 2026-01-28
 clockify-horas business-days --start 2026-05-01 --end 2026-05-31
 clockify-horas add --file lancamentos.json --dry-run
+clockify-horas suggest --description "Daily da equipe"
 ```
 
 ## Config (gerada pelo /clockify-setup)
 
 Local: `~/.config/clockify-horas/config.json` (macOS/Linux) ou
 `%APPDATA%\clockify-horas\config.json` (Windows).
+
+O histórico de mapeamentos (descrição → projeto/tarefa) fica em
+`~/.config/clockify-horas/history.json` (ou `%APPDATA%`), só local: o `add` o atualiza a cada
+lançamento e o `/horas`/`/lancar` o usam para **sugerir** projeto/tarefa nas atividades recorrentes.
+A resolução de tarefa pode ser qualificada por **projeto** (`config set --project`,
+`add-override --project`, ou `project_name` no item do `add`) — necessário quando o mesmo nome
+de tarefa existe em vários projetos.
 
 ```json
 {
