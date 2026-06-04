@@ -1,22 +1,8 @@
 from datetime import UTC, datetime
 
-from clockify_horas.config import Defaults
-from clockify_horas.models import CalEvent, Metadata, TimeEntry
+from clockify_horas.models import Metadata, TimeEntry
 
 _TOLERANCE_HOURS = 0.25  # 15 min de folga antes de avisar
-
-
-def from_event(event: CalEvent, defaults: Defaults) -> TimeEntry:
-    """Converte uma reunião do calendário num lançamento aplicando os defaults."""
-    return TimeEntry(
-        description=event.title,
-        start=event.start,
-        end=event.end,
-        task_name=defaults.task_name,
-        tag_names=[defaults.tag_name],
-        billable=defaults.billable,
-        project_name=defaults.project,
-    )
 
 
 def duration_hours(entry: TimeEntry) -> float:
