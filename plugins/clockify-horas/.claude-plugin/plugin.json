@@ -5,6 +5,5 @@
   "author": { "name": "PG Consultoria" },
   "keywords": ["clockify", "time-tracking", "outlook"],
   "skills": "./skills/",
-  "commands": ["./commands/"],
-  "hooks": "./hooks/hooks.json"
+  "commands": ["./commands/"]
 }
