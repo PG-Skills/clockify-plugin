@@ -387,20 +387,20 @@ def test_add_dry_run_usa_project_name(monkeypatch, tmp_path, capsys):
     payloads = json.loads(capsys.readouterr().out)
     assert payloads[0]["projectId"] == "p2"
     assert payloads[0]["taskId"] == "t2"
-    from clockify_horas.history import suggest_for
+    from clockify_horas.learned import read_learned
 
-    assert suggest_for("x") is None  # dry-run não grava histórico
+    assert read_learned() == []  # dry-run não grava
 
 
 @respx.mock
-def test_add_grava_historico_no_sucesso(monkeypatch, tmp_path):
+def test_add_grava_learned_no_sucesso(monkeypatch, tmp_path):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
     monkeypatch.setenv("CLOCKIFY_API_KEY", "k")
     monkeypatch.setenv("CLOCKIFY_WORKSPACE_ID", "W")
     monkeypatch.setenv("OUTLOOK_ICS_URL", "")
     respx.get(f"{BASE}/user").mock(return_value=httpx.Response(200, json={"id": "u"}))
     respx.get(f"{BASE}/workspaces/W/projects").mock(
-        return_value=httpx.Response(200, json=[{"id": "p1", "name": "Proj A"}])
+        return_value=httpx.Response(200, json=[{"id": "p1", "name": "Proj Demo"}])
     )
     respx.get(f"{BASE}/workspaces/W/projects/p1/tasks").mock(
         return_value=httpx.Response(200, json=[{"id": "t1", "name": "T"}])
@@ -419,21 +419,24 @@ def test_add_grava_historico_no_sucesso(monkeypatch, tmp_path):
             "task_name": "T",
             "tag_names": ["G"],
             "billable": False,
-            "project_name": "Proj A",
+            "project_name": "Proj Demo",
         }
     ]
     f = tmp_path / "e.json"
     f.write_text(json.dumps(item), encoding="utf-8")
     rc = main(["add", "--file", str(f)])
     assert rc == 0
-    from clockify_horas.history import suggest_for
+    from clockify_horas.learned import read_learned
 
-    assert suggest_for("Reunião Recorrente") == {
-        "project_name": "Proj A",
-        "task_name": "T",
-        "tag_names": ["G"],
-        "billable": False,
-    }
+    assert read_learned() == [
+        {
+            "match": "Reunião Recorrente",
+            "project_name": "Proj Demo",
+            "task_name": "T",
+            "tag_names": ["G"],
+            "billable": False,
+        }
+    ]
 
 
 def test_agenda_sem_ics_erro(monkeypatch, tmp_path, capsys):
