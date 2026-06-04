@@ -204,3 +204,21 @@ def test_resolve_project_name_vazio_cai_no_fallback():
     p = build_payload(_dup_entry("Único", project_name=""), _md_dup())
     assert p["projectId"] == "p1"
     assert p["taskId"] == "t3"
+
+
+def test_from_event_propaga_projeto_do_default():
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    from clockify_horas.config import Defaults
+    from clockify_horas.entries import from_event
+    from clockify_horas.models import CalEvent
+
+    tz = ZoneInfo("America/Sao_Paulo")
+    ev = CalEvent(
+        title="x", start=datetime(2026, 6, 4, 9, tzinfo=tz), end=datetime(2026, 6, 4, 10, tzinfo=tz)
+    )
+    d = Defaults(
+        task_name="T", tag_name="G", billable=False, daily_target_hours=8.0, project="Proj A"
+    )
+    assert from_event(ev, d).project_name == "Proj A"

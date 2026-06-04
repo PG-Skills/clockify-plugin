@@ -15,6 +15,7 @@ def from_event(event: CalEvent, defaults: Defaults) -> TimeEntry:
         task_name=defaults.task_name,
         tag_names=[defaults.tag_name],
         billable=defaults.billable,
+        project_name=defaults.project,
     )
 
 

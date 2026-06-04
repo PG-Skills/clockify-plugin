@@ -160,3 +160,59 @@ def test_load_overrides_incompleto_levanta(monkeypatch, tmp_path):
         assert "override incompleto" in str(e)
     else:
         raise AssertionError("esperava ValueError")
+
+
+def test_load_defaults_com_projeto(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    from clockify_horas.config import load_defaults, write_raw
+
+    write_raw(
+        {
+            "defaults": {
+                "task_name": "T",
+                "tag_name": "G",
+                "billable": False,
+                "daily_target_hours": 8.0,
+                "project": "Proj A",
+            }
+        }
+    )
+    assert load_defaults().project == "Proj A"
+
+
+def test_load_defaults_sem_projeto_none(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    from clockify_horas.config import load_defaults, write_raw
+
+    write_raw(
+        {
+            "defaults": {
+                "task_name": "T",
+                "tag_name": "G",
+                "billable": False,
+                "daily_target_hours": 8.0,
+            }
+        }
+    )
+    assert load_defaults().project is None
+
+
+def test_load_overrides_com_projeto(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    from clockify_horas.config import load_overrides, write_raw
+
+    write_raw(
+        {
+            "overrides": [
+                {
+                    "match": "M",
+                    "task_name": "T",
+                    "tag_name": "G",
+                    "billable": True,
+                    "project": "Proj B",
+                }
+            ]
+        }
+    )
+    ov = load_overrides()
+    assert ov[0].project == "Proj B"

@@ -21,6 +21,7 @@ class Defaults:
     tag_name: str
     billable: bool
     daily_target_hours: float
+    project: str | None = None
 
 
 @dataclass
@@ -29,6 +30,7 @@ class Override:
     task_name: str
     tag_name: str
     billable: bool
+    project: str | None = None
 
 
 def config_path() -> Path:
@@ -109,6 +111,7 @@ def load_defaults(path: Path | None = None) -> Defaults:
             tag_name=d["tag_name"],
             billable=bool(d["billable"]),
             daily_target_hours=float(d["daily_target_hours"]),
+            project=d.get("project"),
         )
     except KeyError as e:
         raise ValueError(f"defaults incompletos no config ({e}). Rode /clockify-setup.") from e
@@ -123,6 +126,7 @@ def load_overrides(path: Path | None = None) -> list[Override]:
                 task_name=o["task_name"],
                 tag_name=o["tag_name"],
                 billable=bool(o["billable"]),
+                project=o.get("project"),
             )
             for o in raw
         ]
