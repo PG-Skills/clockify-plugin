@@ -287,9 +287,9 @@ def _cmd_config_doctor(args: argparse.Namespace) -> int:
             httpx.get(cfg.ics_url, timeout=10.0, follow_redirects=True).raise_for_status()
             print("OK: link ICS acessível.")
         except httpx.HTTPError:
-            print("WARN: link ICS não respondeu (necessário só para /horas).")
+            print("WARN: link ICS não respondeu (necessário só para /lancar).")
     else:
-        print("WARN: ICS não configurado (necessário só para /horas).")
+        print("WARN: ICS não configurado (necessário só para /lancar).")
     return 0
 
 

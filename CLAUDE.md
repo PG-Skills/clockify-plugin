@@ -26,7 +26,7 @@ a CLI só executa I/O confiável.
 - `entries.py` — lógica pura: totais, `to_utc_iso`, `build_payload` (resolve nomes → IDs).
 - `learned.py` — store das atividades aprendidas (`learned.json`): `record` upsert por `match`, `read_learned`.
 - `bizdays.py` — dias úteis (seg–sex) de um intervalo. `config.py` — config XDG + precedência env. `models.py` — dataclasses.
-- Slash commands: `plugins/clockify-plugin/commands/horas.md` (um dia via Outlook), `plugins/clockify-plugin/commands/lancar.md` (vários dias / retroativo).
+- Slash commands: `plugins/clockify-plugin/commands/lancar.md` (um dia via Outlook), `plugins/clockify-plugin/commands/lancar-dias.md` (vários dias / retroativo).
 
 ## Convenções específicas (gotchas)
 
@@ -40,7 +40,7 @@ a CLI só executa I/O confiável.
   `learned.json` por-usuário (fora do repo): o `add` aprende no sucesso e `learned add`
   registra por palavra-chave. O **Claude** reconhece na conversa; o código não adivinha.
   Não há dado de cliente no repo.
-- **ICS é opcional**: só o subcomando `agenda` (fluxo `/horas`) precisa dele; `/lancar`
+- **ICS é opcional**: só o subcomando `agenda` (fluxo `/lancar`) precisa dele; `/lancar-dias`
   funciona sem.
 - **Horários em UTC**: conversão de hora local (America/Sao_Paulo) em `to_utc_iso`.
 - **`add` é resiliente a falha parcial**: para no 1º erro, reporta "gravou N de M", sai ≠ 0.

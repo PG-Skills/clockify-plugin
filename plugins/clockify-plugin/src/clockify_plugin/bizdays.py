@@ -4,7 +4,7 @@ from datetime import date, timedelta
 def business_days(start: date, end: date) -> list[date]:
     """Lista as datas seg–sex no intervalo [start, end] (inclusive).
 
-    Não filtra feriados — isso é podado manualmente na conversa do /lancar.
+    Não filtra feriados — isso é podado manualmente na conversa do /lancar-dias.
     Levanta ValueError se start > end.
     """
     if start > end:

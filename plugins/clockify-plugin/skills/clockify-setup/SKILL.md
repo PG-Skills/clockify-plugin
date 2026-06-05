@@ -44,7 +44,7 @@ que aí você me dita as horas e funciona igual."
   compartilhados* → *Publicar um calendário* → escolha o calendário e a permissão → copie o
   link **.ics** (o ICS, não o HTML).
 - Se a pessoa colar o link: `clockify-plugin config set --ics-url "<URL>"`.
-- Se pular: não grave nada. (Sem ICS, `/horas` funciona pela ditada e `/lancar` funciona
+- Se pular: não grave nada. (Sem ICS, `/lancar` funciona pela ditada e `/lancar-dias` funciona
   normalmente.)
 
 ## Pergunta 3 — Atividade padrão (opcional)
@@ -75,5 +75,5 @@ Rode `clockify-plugin config doctor` e mostre o resultado **em linguagem comum**
 quem pulou a pergunta 3; qualquer `FAIL` precisa ser corrigido (volte à pergunta
 correspondente).
 
-Ao final, diga em português comum: "Testei, tá tudo certo! ✅ Agora é só `/horas` (lança o
-dia) ou `/lancar` (vários dias)." Reconfigurar é só rodar `/clockify-setup` de novo.
+Ao final, diga em português comum: "Testei, tá tudo certo! ✅ Agora é só `/lancar` (lança o
+dia) ou `/lancar-dias` (vários dias)." Reconfigurar é só rodar `/clockify-setup` de novo.

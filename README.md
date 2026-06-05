@@ -12,7 +12,7 @@ Funciona em **macOS, Windows e Linux**.
 - 📅 Lê sua agenda do **Outlook** (link ICS) e transforma as reuniões do dia em lançamentos no **Clockify**.
 - ✅ Mostra tudo em **simulação** primeiro — só grava depois do seu "pode lançar".
 - 🧠 **Aprende** suas atividades recorrentes (ex.: "daily do projeto X" → projeto/tarefa certos), pra perguntar cada vez menos.
-- 🗓️ Lança **um dia** (`/horas`) ou **vários de uma vez** (`/lancar`, ótimo pra fechar o mês retroativo).
+- 🗓️ Lança **um dia** (`/lancar`) ou **vários de uma vez** (`/lancar-dias`, ótimo pra fechar o mês retroativo).
 
 ## Pré-requisito (1 minuto): instalar o `uv`
 
@@ -44,9 +44,9 @@ Se você esquecer, o `/clockify-setup` avisa e mostra como instalar.
 
 | Comando | O que faz |
 |---|---|
-| `/horas` | Lança **hoje** a partir da agenda do Outlook. |
-| `/horas 2026-01-28` | Lança um **dia específico**. |
-| `/lancar` | Lança **vários dias** de uma vez (ex.: o mês inteiro). Funciona **sem** ICS. |
+| `/lancar` | Lança **hoje** a partir da agenda do Outlook. |
+| `/lancar 2026-01-28` | Lança um **dia específico**. |
+| `/lancar-dias` | Lança **vários dias** de uma vez (ex.: o mês inteiro). Funciona **sem** ICS. |
 | `/clockify-setup` | Reconfigura credenciais, ICS ou a atividade padrão. |
 
 Em qualquer fluxo, o Claude **mostra um resumo** do que vai lançar e **espera sua confirmação** antes de gravar. Lançamento duplicado é evitado automaticamente (ele checa o que já existe no dia).
