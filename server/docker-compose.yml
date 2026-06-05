@@ -17,6 +17,10 @@ services:
     environment:
       # bind 0.0.0.0 dentro do container; o Traefik host-mode alcança via clockify-net.
       PUBLIC_URL: "https://${CLOCKIFY_MCP_DOMAIN}"
+      # SQLite de preferências por usuário, no volume persistente (não some no redeploy).
+      PREFS_DB: /data/prefs.db
+    volumes:
+      - "clockify-data:/data"
     networks:
       - clockify-net
     labels:
@@ -32,3 +36,8 @@ networks:
   clockify-net:
     name: clockify-net
     driver: bridge
+
+volumes:
+  # Persiste o SQLite de preferências entre redeploys.
+  clockify-data:
+    name: clockify-data
