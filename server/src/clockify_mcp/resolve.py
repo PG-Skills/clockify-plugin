@@ -10,11 +10,11 @@ Retornos estruturados são idioma-neutro: só dados (status/motivo/candidatos), 
 frase pronta pro usuário — quem fala com o usuário é a skill conversacional.
 """
 
-from datetime import datetime
+from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
 from . import clockify as cl
-from .pure import to_utc_iso
+from .pure import range_window_utc, to_utc_iso
 
 # Mesmo default de fuso usado em ics.py — horários dos items chegam em hora local.
 _TZ = ZoneInfo("America/Sao_Paulo")
@@ -141,11 +141,11 @@ async def add_entries(
             "motivo": None,
         }
 
-    # Janela UTC que cobre todos os items -> uma única leitura de entries existentes.
-    starts = [_local_dt(it["date"], it["start"]) for it in items]
-    ends = [_local_dt(it["date"], it["end"]) for it in items]
-    win_start = to_utc_iso(min(starts))
-    win_end = to_utc_iso(max(ends))
+    # Janela UTC que cobre os DIAS LOCAIS inteiros dos items -> uma única leitura de
+    # entries existentes. Usar os dias (não os horários) garante que uma duplicata em
+    # horário anterior ao 1º item do lote (ou um item cruzando meia-noite) seja lida.
+    datas = [date.fromisoformat(it["date"]) for it in items]
+    win_start, win_end = range_window_utc(min(datas), max(datas), _TZ)
     existentes = await cl.entries(api_key, workspace_id, user_id, win_start, win_end)
     ja_existe: set[tuple[str, str]] = set()
     for e in existentes:

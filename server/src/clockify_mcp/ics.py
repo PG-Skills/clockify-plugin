@@ -10,7 +10,10 @@ Retorna `list[dict]` com `title`/`start`/`end` (datetime aware em hora local), o
 por início — evita acoplar a um model e mantém o resultado serializável p/ o MCP.
 """
 
+import ipaddress
+import socket
 from datetime import date, datetime, time, timedelta
+from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -20,12 +23,38 @@ from icalendar import Calendar
 _DEFAULT_TZ = "America/Sao_Paulo"
 
 
+def _validate_ics_url(url: str) -> None:
+    """Anti-SSRF: exige https e host que resolve só a IPs públicos. Levanta ValueError.
+
+    O ``ics_url`` vem do form do usuário e é buscado server-side; sem validar scheme/host
+    permitiria SSRF cega (port-scan/pivô via ``169.254...`` ou hosts internos do Docker).
+    Resolve o host e rejeita qualquer endereço privado/loopback/link-local/reservado.
+    """
+    parts = urlsplit(url)
+    if parts.scheme != "https":
+        raise ValueError("ics_url precisa usar https://")
+    host = parts.hostname
+    if not host:
+        raise ValueError("ics_url sem host")
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except socket.gaierror as exc:
+        raise ValueError("ics_url: host não resolve") from exc
+    for info in infos:
+        ip = ipaddress.ip_address(info[4][0])
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+            raise ValueError("ics_url aponta para um endereço interno/privado")
+
+
 async def fetch_ics(url: str, timeout: float = 30.0) -> str:
     """Baixa o conteúdo bruto do ICS publicado (GET). Levanta em status HTTP de erro.
 
-    GET — NÃO HEAD: o endpoint ICS do Outlook rejeita HEAD.
+    GET — NÃO HEAD: o endpoint ICS do Outlook rejeita HEAD. Valida a URL (anti-SSRF)
+    ANTES do GET e desabilita redirects — o ICS do Outlook é URL direta, então
+    ``follow_redirects=False`` impede um redirect para um alvo interno burlar a validação.
     """
-    async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
+    _validate_ics_url(url)
+    async with httpx.AsyncClient(timeout=timeout, follow_redirects=False) as client:
         resp = await client.get(url)
     resp.raise_for_status()
     return resp.text

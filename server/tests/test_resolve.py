@@ -208,6 +208,55 @@ async def test_add_entries_pula_duplicata(monkeypatch):
     assert created == []  # não chamou create_entry para a duplicata
 
 
+async def test_add_entries_pula_duplicata_em_horario_anterior(monkeypatch):
+    """Regressão: duplicata pré-existente ANTES do 1º item do lote ainda é pulada.
+
+    Bug: a janela de leitura usava min(starts)..max(ends) dos HORÁRIOS do lote. Uma
+    entry da mesma tarefa no mesmo dia mas em horário anterior (08:00) caía fora da
+    janela 09:00–10:00 e era duplicada. A correção lê o DIA LOCAL inteiro.
+    """
+    _ok_resolver(
+        monkeypatch,
+        {"Cliente X": [{"id": "p1", "name": "Cliente X"}]},
+        {("p1", "Dev"): [{"id": "t1", "name": "Dev"}]},
+    )
+
+    # entry pré-existente às 08:00 local (11:00Z em UTC-3) — antes do 1º item do lote.
+    pre = {
+        "id": "old",
+        "taskId": "t1",
+        "timeInterval": {"start": "2026-01-28T11:00:00Z"},
+    }
+
+    async def _entries(api_key, workspace_id, user_id, start, end):
+        # Mock fiel ao IO real: só devolve a entry se a janela consultada a cobrir.
+        return [pre] if start <= "2026-01-28T11:00:00Z" < end else []
+
+    created: list[dict] = []
+
+    async def _create(api_key, workspace_id, payload):
+        created.append(payload)
+        return {"id": f"e{len(created)}"}
+
+    monkeypatch.setattr(cl, "entries", _entries)
+    monkeypatch.setattr(cl, "create_entry", _create)
+
+    items = [
+        {
+            "description": "dup",
+            "date": "2026-01-28",
+            "start": "09:00",
+            "end": "10:00",
+            "task": "Dev",
+            "project": "Cliente X",
+        },
+    ]
+    out = await add_entries(KEY, WS, UID, items)
+    assert out["pulados_duplicata"] >= 1
+    assert out["gravados"] == 0
+    assert created == []  # não duplicou a entry das 08:00
+
+
 async def test_add_entries_grava_payload_com_ids_e_utc(monkeypatch):
     """Sucesso simples: payload tem IDs resolvidos e start/end em UTC (Z)."""
     _ok_resolver(

@@ -9,7 +9,7 @@ from starlette.responses import HTMLResponse, RedirectResponse
 
 from fastmcp import FastMCP
 
-from . import auth, crypto, tools
+from . import auth, crypto, ics, tools
 from .clockify import get_user
 from .settings import get_settings
 
@@ -66,6 +66,7 @@ _STRINGS = {
         "footer": "Sua chave nunca é guardada no servidor — fica cifrada só na sua sessão.",
         "expired": "Sessão expirada. Recomece.",
         "invalid": "Chave inválida. Confira e tente de novo.",
+        "bad_ics": "Link da agenda inválido. Use um link https público — ou deixe em branco.",
     },
     "en": {
         "lang": "en",
@@ -83,6 +84,7 @@ _STRINGS = {
         "footer": "Your key is never stored on the server — it stays encrypted in your session only.",
         "expired": "Session expired. Please start over.",
         "invalid": "Invalid key. Check it and try again.",
+        "bad_ics": "Invalid calendar link. Use a public https link — or leave it blank.",
     },
     "es": {
         "lang": "es",
@@ -100,6 +102,7 @@ _STRINGS = {
         "footer": "Tu clave nunca se guarda en el servidor — queda cifrada solo en tu sesión.",
         "expired": "Sesión expirada. Empieza de nuevo.",
         "invalid": "Clave inválida. Verifícala e inténtalo de nuevo.",
+        "bad_ics": "Enlace del calendario inválido. Usa un enlace https público — o déjalo vacío.",
     },
 }
 
@@ -167,8 +170,21 @@ async def connect_submit(request: Request):
             status_code=400,
         )
     settings = get_settings()
-    # Campo ICS opcional do form; None quando a pessoa pula.
+    # Campo ICS opcional do form; None quando a pessoa pula. Quando preenchido, valida
+    # (anti-SSRF) ANTES de emitir o code — URL interna/privada não vira token.
     ics_url = str(form.get("ics_url", "")).strip() or None
+    if ics_url is not None:
+        try:
+            ics._validate_ics_url(ics_url)
+        except ValueError:
+            return HTMLResponse(
+                _render_form(
+                    txn_raw,
+                    lang,
+                    err=f'<p class="err">{_STRINGS[lang]["bad_ics"]}</p>',
+                ),
+                status_code=400,
+            )
     identity = {
         "uid": user["id"],
         "ck": crypto.encrypt_key(settings.token_key, api_key),

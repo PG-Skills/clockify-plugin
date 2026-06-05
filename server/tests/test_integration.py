@@ -108,6 +108,59 @@ async def test_connect_form_i18n_and_ics_field():
 
 
 @pytest.mark.asyncio
+async def test_connect_submit_rejeita_ics_url_interna(monkeypatch):
+    """Anti-SSRF: chave válida + ics_url apontando p/ IP privado -> 400, sem emitir code.
+
+    A pessoa volta ao form com erro amigável e pode reenviar (ou pular o ICS).
+    """
+    import clockify_mcp.ics as ics_mod
+
+    def _resolve_privado(host, *args, **kwargs):
+        import socket
+
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("169.254.169.254", 0))]
+
+    monkeypatch.setattr(ics_mod.socket, "getaddrinfo", _resolve_privado)
+
+    app = mcp.http_app()
+    async with app.router.lifespan_context(app):
+        async with await _client(app) as c:
+            from clockify_mcp import auth
+            from mcp.server.auth.provider import AuthorizationParams
+            from pydantic import AnyUrl
+
+            txn = auth.mint_txn(
+                AuthorizationParams(
+                    state="xyz",
+                    scopes=["clockify"],
+                    code_challenge="abc",
+                    redirect_uri=AnyUrl("https://claude.ai/cb"),
+                    redirect_uri_provided_explicitly=True,
+                    resource="http://localhost:8080/mcp",
+                ),
+                "cowork",
+            )
+            with respx.mock:
+                respx.get("https://api.clockify.me/api/v1/user").mock(
+                    return_value=httpx.Response(
+                        200, json={"id": "u1", "name": "Ana", "email": "ana@pg.com"}
+                    )
+                )
+                r = await c.post(
+                    "/connect",
+                    data={
+                        "txn": txn,
+                        "api_key": "KEY",
+                        "ics_url": "https://metadata.evil.example/x.ics",
+                    },
+                )
+            # Não redireciona (não emite code): re-renderiza o form com erro, status 400.
+            assert r.status_code == 400
+            assert "code=" not in (r.headers.get("location") or "")
+            assert "Clockify" in r.text  # voltou ao form
+
+
+@pytest.mark.asyncio
 async def test_connect_form_escapes_txn_xss():
     """Regressão: txn refletido na página /connect deve ser HTML-escapado."""
     app = mcp.http_app()
