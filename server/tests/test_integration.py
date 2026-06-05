@@ -83,6 +83,31 @@ async def test_connect_form_and_submit():
 
 
 @pytest.mark.asyncio
+async def test_connect_form_i18n_and_ics_field():
+    """A página /connect é multilíngue (Accept-Language) e expõe o campo ICS opcional."""
+    app = mcp.http_app()
+    async with app.router.lifespan_context(app):
+        async with await _client(app) as c:
+            # Inglês via Accept-Language -> textos em inglês + campo ics_url.
+            r_en = await c.get(
+                "/connect",
+                params={"txn": "x"},
+                headers={"Accept-Language": "en-US,en;q=0.9"},
+            )
+            assert r_en.status_code == 200
+            assert "Connect Clockify" in r_en.text
+            assert 'name="ics_url"' in r_en.text
+            assert "optional" in r_en.text.lower()
+
+            # Sem header -> default português.
+            r_pt = await c.get("/connect", params={"txn": "x"})
+            assert r_pt.status_code == 200
+            assert "Conectar o Clockify" in r_pt.text
+            assert "Conectar" not in r_en.text  # rótulo PT não vaza no EN
+            assert 'name="ics_url"' in r_pt.text
+
+
+@pytest.mark.asyncio
 async def test_connect_form_escapes_txn_xss():
     """Regressão: txn refletido na página /connect deve ser HTML-escapado."""
     app = mcp.http_app()

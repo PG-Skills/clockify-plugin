@@ -1,6 +1,6 @@
 {
   "name": "clockify-cowork",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Lança horas no Clockify pelo Cowork via connector MCP remoto (PoC).",
   "author": { "name": "AI Product Innovation · PG" },
   "keywords": ["clockify", "time-tracking", "cowork"],
