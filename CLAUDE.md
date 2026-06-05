@@ -4,19 +4,19 @@ Wrapper fino para o Claude Code neste repositório. Detalhes de uso ficam no `RE
 
 ## Comandos principais
 
-Rodar dentro de `plugins/clockify-horas/`:
+Rodar dentro de `plugins/clockify-plugin/`:
 
 ```bash
 uv sync                       # instalar deps
 uv run pytest -q              # testes
 uv run ruff check .           # lint
 uv run pyright                # type check
-uv run clockify-horas --help  # CLI
+uv run clockify-plugin --help  # CLI
 ```
 
 ## Arquitetura
 
-CLI fina (`clockify-horas`) que lê a agenda do Outlook (ICS) e grava lançamentos no
+CLI fina (`clockify-plugin`) que lê a agenda do Outlook (ICS) e grava lançamentos no
 Clockify via API REST. Separação **cérebro / IO**: o slash command orquestra a conversa,
 a CLI só executa I/O confiável.
 
@@ -26,14 +26,14 @@ a CLI só executa I/O confiável.
 - `entries.py` — lógica pura: totais, `to_utc_iso`, `build_payload` (resolve nomes → IDs).
 - `learned.py` — store das atividades aprendidas (`learned.json`): `record` upsert por `match`, `read_learned`.
 - `bizdays.py` — dias úteis (seg–sex) de um intervalo. `config.py` — config XDG + precedência env. `models.py` — dataclasses.
-- Slash commands: `plugins/clockify-horas/commands/horas.md` (um dia via Outlook), `plugins/clockify-horas/commands/lancar.md` (vários dias / retroativo).
+- Slash commands: `plugins/clockify-plugin/commands/horas.md` (um dia via Outlook), `plugins/clockify-plugin/commands/lancar.md` (vários dias / retroativo).
 
 ## Convenções específicas (gotchas)
 
-- **Config por-usuário** em `~/.config/clockify-horas/config.json` (macOS/Linux) ou
-  `%APPDATA%\clockify-horas\config.json` (Windows); `$XDG_CONFIG_HOME` tem prioridade.
+- **Config por-usuário** em `~/.config/clockify-plugin/config.json` (macOS/Linux) ou
+  `%APPDATA%\clockify-plugin\config.json` (Windows); `$XDG_CONFIG_HOME` tem prioridade.
   Variáveis de ambiente têm precedência sobre o arquivo (CI/testes). Criada/editada via
-  `/clockify-setup` ou o subcomando `clockify-horas config set`.
+  `/clockify-setup` ou o subcomando `clockify-plugin config set`.
 - **Tarefa resolve por NOME, globalmente** (`build_payload._resolve_task`) — o nome precisa
   ser único entre projetos.
 - **Atividades aprendidas** (título/palavra-chave → projeto/tarefa) vivem em

@@ -1,9 +1,0 @@
-{
-  "name": "clockify-horas",
-  "version": "1.0.0",
-  "description": "Lançador de horas Clockify a partir da agenda do Outlook (ICS), com onboarding guiado e config por-usuário.",
-  "author": { "name": "PG Consultoria" },
-  "keywords": ["clockify", "time-tracking", "outlook"],
-  "skills": "./skills/",
-  "commands": ["./commands/"]
-}

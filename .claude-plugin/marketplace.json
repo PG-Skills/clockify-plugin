@@ -4,8 +4,8 @@
   "description": "Marketplace interno — lançador de horas Clockify.",
   "plugins": [
     {
-      "name": "clockify-horas",
-      "source": "./plugins/clockify-horas",
+      "name": "clockify-plugin",
+      "source": "./plugins/clockify-plugin",
       "version": "1.0.0",
       "description": "Lançador de horas Clockify via Outlook (ICS) com onboarding guiado."
     }
