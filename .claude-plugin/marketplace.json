@@ -8,6 +8,12 @@
       "source": "./plugins/clockify-plugin",
       "version": "1.0.0",
       "description": "Lançador de horas Clockify via Outlook (ICS) com onboarding guiado."
+    },
+    {
+      "name": "clockify-cowork",
+      "source": "./clockify-cowork",
+      "version": "0.2.0",
+      "description": "Lança horas no Clockify pelo Cowork via connector MCP remoto."
     }
   ]
 }
