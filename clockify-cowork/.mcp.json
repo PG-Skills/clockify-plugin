@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "clockify": {
+      "type": "http",
+      "url": "https://clockify.srv1625247.hstgr.cloud/mcp"
+    }
+  }
+}

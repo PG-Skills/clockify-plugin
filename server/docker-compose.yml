@@ -1,0 +1,34 @@
+# clockify-mcp na VPS atrás do Traefik COMPARTILHADO (host-mode).
+# Espelha o padrão do PGBrain (AI_Team/PGBrain/docker-compose.yml): rede PRÓPRIA
+# (não external) + label traefik.docker.network; SEM ports: publicados; TLS termina no Traefik.
+# NUNCA tocar /docker/traefik/ (compartilhado: PGIntegra/PGBrain/Nexus/OpenClaw/codex-bridge).
+name: clockify-mcp
+
+services:
+  clockify-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: clockify-mcp:latest
+    container_name: clockify-mcp
+    restart: unless-stopped
+    mem_limit: 512m
+    env_file: .env
+    environment:
+      # bind 0.0.0.0 dentro do container; o Traefik host-mode alcança via clockify-net.
+      PUBLIC_URL: "https://${CLOCKIFY_MCP_DOMAIN}"
+    networks:
+      - clockify-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=clockify-net"
+      - "traefik.http.routers.clockify-mcp.rule=Host(`${CLOCKIFY_MCP_DOMAIN}`)"
+      - "traefik.http.routers.clockify-mcp.entrypoints=websecure"
+      - "traefik.http.routers.clockify-mcp.tls.certresolver=letsencrypt"
+      - "traefik.http.services.clockify-mcp.loadbalancer.server.port=8080"
+
+networks:
+  # Bridge própria (não external) — o Traefik host-mode roteia ao IP do container aqui.
+  clockify-net:
+    name: clockify-net
+    driver: bridge
