@@ -4,7 +4,8 @@
 > conversando com o Claude Code. Cada pessoa pluga as próprias credenciais;
 > **nada seu fica no repositório.**
 
-Ferramenta interna da **PG**. Funciona em **macOS, Windows e Linux**.
+Ferramenta interna da **PG**, desenvolvida pelo time **AI Product Innovation**.
+Funciona em **macOS, Windows e Linux**.
 
 ## O que ele faz
 
@@ -107,3 +108,7 @@ Variáveis de ambiente (`CLOCKIFY_API_KEY`, `CLOCKIFY_WORKSPACE_ID`, `OUTLOOK_IC
 precedência sobre o arquivo de config (útil em CI).
 
 Política de versão e processo de release: ver **`MAINTAINER.md`**.
+
+---
+
+<sub>Desenvolvido pelo time **AI Product Innovation** da PG.</sub>
