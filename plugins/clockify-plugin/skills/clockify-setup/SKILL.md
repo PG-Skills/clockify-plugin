@@ -26,7 +26,7 @@ for opcional.** São **3 perguntas**.
 
 ## Pergunta 1 — Conectar ao Clockify
 
-"Cola sua chave do Clockify aqui. Onde pegar: abra o Clockify → canto inferior esquerdo
+"Cola sua chave do Clockify aqui. Onde pegar: abra o Clockify → canto superior direito
 (seu perfil) → *Preferences* → aba *Advanced* (ou *Profile Settings → API*) → *Generate*."
 Pegue a key e rode `clockify-plugin config set --api-key "<KEY>"`.
 
