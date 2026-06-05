@@ -1,5 +1,5 @@
-"""FastMCP server: tool `whoami` (lê a chave via get_access_token().claims) +
-a página /connect (coleta a chave do Clockify e fecha o fluxo OAuth)."""
+"""FastMCP server: registra as tools idioma-neutras (`tools.register`) + a página
+/connect (coleta a chave do Clockify e fecha o fluxo OAuth)."""
 
 import html
 import urllib.parse
@@ -8,22 +8,13 @@ from starlette.requests import Request
 from starlette.responses import HTMLResponse, RedirectResponse
 
 from fastmcp import FastMCP
-from fastmcp.server.dependencies import get_access_token
 
-from . import auth, crypto
+from . import auth, crypto, tools
 from .clockify import get_user
 from .settings import get_settings
 
 mcp = FastMCP(name="clockify-mcp", auth=auth.StatelessClockifyOAuth())
-
-
-@mcp.tool
-async def whoami() -> str:
-    """Confirma a conexão: devolve o nome da conta do Clockify."""
-    token = get_access_token()
-    api_key = crypto.decrypt_key(get_settings().token_key, token.claims["ck"])
-    user = await get_user(api_key)
-    return f"Conectado como {user['name']} ({user['email']})."
+tools.register(mcp)
 
 
 _FORM = """<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
