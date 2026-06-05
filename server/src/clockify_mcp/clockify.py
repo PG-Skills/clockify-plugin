@@ -6,7 +6,8 @@ from .settings import get_settings
 
 
 async def get_user(api_key: str) -> dict:
-    """Valida a chave e retorna {id, name, email}. Levanta ValueError se a chave for inválida."""
+    """Valida a chave e retorna {id, name, email, workspace_id}. Levanta ValueError se a
+    chave for inválida. `workspace_id` vem de defaultWorkspace (fallback activeWorkspace)."""
     base = get_settings().clockify_base
     async with httpx.AsyncClient(base_url=base, timeout=10.0) as client:
         resp = await client.get("/user", headers={"X-Api-Key": api_key})
@@ -14,4 +15,9 @@ async def get_user(api_key: str) -> dict:
         raise ValueError("chave do Clockify inválida")
     resp.raise_for_status()
     d = resp.json()
-    return {"id": d["id"], "name": d["name"], "email": d["email"]}
+    return {
+        "id": d["id"],
+        "name": d["name"],
+        "email": d["email"],
+        "workspace_id": d.get("defaultWorkspace") or d.get("activeWorkspace"),
+    }

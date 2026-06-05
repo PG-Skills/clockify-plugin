@@ -50,7 +50,7 @@ async def test_oauth_cycle_stateless_with_refresh():
     )
     await p.register_client(client)
 
-    # A página /connect validou a chave e emitiu o code (carregando ck).
+    # A página /connect validou a chave e montou a identity (ck/ics cifrados); emite o code.
     txn = {
         "cid": "cowork",
         "cc": "abc",
@@ -58,11 +58,20 @@ async def test_oauth_cycle_stateless_with_refresh():
         "st": "xyz",
         "sc": ["clockify"],
     }
-    code_str = auth.mint_authorization_code(UID, CLOCKIFY_KEY, txn)
+    identity = {
+        "uid": UID,
+        "ck": crypto.encrypt_key(get_settings().token_key, CLOCKIFY_KEY),
+        "ws": "ws-1",
+        "ics": None,
+    }
+    code_str = auth.mint_authorization_code(identity, txn)
 
     code = await p.load_authorization_code(client, code_str)
     tok = await p.exchange_authorization_code(client, code)
     access = await p.verify_token(tok.access_token)
+    # claims É a identity inteira: ck continua válido (claims["ck"]) e ws sobrevive.
+    assert access.claims["uid"] == UID
+    assert access.claims["ws"] == "ws-1"
     assert (
         crypto.decrypt_key(get_settings().token_key, access.claims["ck"])
         == CLOCKIFY_KEY
@@ -71,10 +80,11 @@ async def test_oauth_cycle_stateless_with_refresh():
         CLOCKIFY_KEY not in tok.access_token and CLOCKIFY_KEY not in tok.refresh_token
     )
 
-    # C3: refresh re-emite com a chave, sem recoletar.
+    # C3: refresh re-emite a identity inteira, sem recoletar — ck E ws sobrevivem.
     rt = await p.load_refresh_token(client, tok.refresh_token)
     tok2 = await p.exchange_refresh_token(client, rt, scopes=["clockify"])
     access2 = await p.verify_token(tok2.access_token)
+    assert access2.claims["ws"] == "ws-1"
     assert (
         crypto.decrypt_key(get_settings().token_key, access2.claims["ck"])
         == CLOCKIFY_KEY

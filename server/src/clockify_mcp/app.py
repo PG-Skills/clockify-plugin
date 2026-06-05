@@ -84,6 +84,15 @@ async def connect_submit(request: Request):
             ),
             status_code=400,
         )
-    code = auth.mint_authorization_code(user["id"], api_key, txn)
+    settings = get_settings()
+    # O campo ICS ainda não existe no form (task futura); por ora None se ausente.
+    ics_url = str(form.get("ics_url", "")).strip() or None
+    identity = {
+        "uid": user["id"],
+        "ck": crypto.encrypt_key(settings.token_key, api_key),
+        "ws": user["workspace_id"],
+        "ics": crypto.encrypt_key(settings.token_key, ics_url) if ics_url else None,
+    }
+    code = auth.mint_authorization_code(identity, txn)
     q = urllib.parse.urlencode({"code": code, "state": txn["st"]})
     return RedirectResponse(f"{txn['ru']}?{q}", status_code=302)
