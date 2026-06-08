@@ -4,8 +4,9 @@
   "description": "Marketplace interno — lançador de horas Clockify.",
   "plugins": [
     {
-      "name": "clockify-cowork",
-      "source": "./clockify-cowork",
+      "name": "clockify-plugin",
+      "source": "./clockify-plugin",
+      "version": "1.0.0",
       "description": "Lança horas no Clockify pelo Cowork via skill + CLI local (sem servidor)."
     }
   ]

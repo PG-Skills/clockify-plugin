@@ -66,7 +66,7 @@ def fetch_ics(url: str, timeout: float = 30.0) -> str:
     """Baixa o texto do ICS (GET, sem seguir redirects). Valida a URL antes."""
     validate_ics_url(url)
     opener = urllib.request.build_opener(_NoRedirect)
-    req = urllib.request.Request(url, headers={"User-Agent": "clockify-cowork"})
+    req = urllib.request.Request(url, headers={"User-Agent": "clockify-plugin"})
     # Sem redirect: 3xx/4xx/5xx já levantam HTTPError (subclasse de OSError) aqui — só 2xx
     # chega a ler. O redirect NÃO é seguido (anti-SSRF).
     with opener.open(req, timeout=timeout) as resp:

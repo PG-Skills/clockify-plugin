@@ -23,7 +23,7 @@ Nenhuma outra dependência: a CLI Python usa apenas stdlib.
 
 ```
 /plugin marketplace add https://github.com/PG-Skills/clockify-plugin.git
-/plugin install clockify-cowork@pg-clockify
+/plugin install clockify-plugin@pg-clockify
 ```
 
 Na primeira sessão, use `/clockify` para conectar:
@@ -67,11 +67,11 @@ Tudo é **por-projeto e fica fora do repositório** (em `.clockify/` na pasta ab
 
 ## Para mantenedores / desenvolvedores
 
-O "cérebro" é a skill conversacional (`clockify-cowork/skills/clockify-tracking/SKILL.md`);
-o "IO confiável" é uma CLI Python zero-dependência (`clockify-cowork/scripts/clockify_cli/`).
+O "cérebro" é a skill conversacional (`clockify-plugin/skills/clockify-tracking/SKILL.md`);
+o "IO confiável" é uma CLI Python zero-dependência (`clockify-plugin/scripts/clockify_cli/`).
 
 ```bash
-cd clockify-cowork/scripts
+cd clockify-plugin/scripts
 python3 -m pytest -q        # 90 testes, stdlib only, sem uv
 ```
 
