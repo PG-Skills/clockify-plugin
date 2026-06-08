@@ -1,14 +1,8 @@
 {
   "name": "clockify-cowork",
-  "version": "0.2.0",
-  "description": "Lança horas no Clockify pelo Cowork via connector MCP remoto (PoC).",
+  "version": "1.0.0",
+  "description": "Lança horas no Clockify pelo Cowork via skill + CLI local (sem servidor).",
   "author": { "name": "AI Product Innovation · PG" },
   "keywords": ["clockify", "time-tracking", "cowork"],
-  "mcpServers": {
-    "clockify": {
-      "type": "http",
-      "url": "https://clockify.srv1625247.hstgr.cloud/mcp"
-    }
-  },
   "commands": ["./commands/"]
 }
