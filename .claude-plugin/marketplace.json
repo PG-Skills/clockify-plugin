@@ -6,7 +6,6 @@
     {
       "name": "clockify-cowork",
       "source": "./clockify-cowork",
-      "version": "1.0.0",
       "description": "Lança horas no Clockify pelo Cowork via skill + CLI local (sem servidor)."
     }
   ]
