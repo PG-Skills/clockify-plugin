@@ -6,6 +6,7 @@ nunca escreve frase pronta pro usuário."""
 import argparse
 import json
 import sys
+from pathlib import Path
 
 import clockify
 import config

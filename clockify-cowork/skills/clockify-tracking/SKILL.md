@@ -118,5 +118,13 @@ aparecer 'X', já lanço em <projeto>?"*. Só com o "sim":
   de arquivo. Os aprendizados em `.clockify/prefs.json` permanecem — a não ser que a pessoa
   também peça "recomeçar do zero".
 
+## Erros internos (culpa minha, não da pessoa)
+
+Se um comando devolver `{"error":"INVALID_INPUT",...}` (ex.: data malformada que **eu** montei)
+ou `{"error":"INVALID_ITEMS",...}` (JSON dos lançamentos malformado/sem campo obrigatório —
+veja `reason`/`missing_at`), **fui eu que errei ao montar os dados**, não a pessoa. Corrijo
+em silêncio (datas no formato AAAA-MM-DD, horas HH:MM, cada item com `date/start/end/task`) e
+refaço — **sem** mostrar o erro técnico nem culpar a pessoa.
+
 **Regras de ouro:** nunca grave sem conferir (dry-run antes); nunca apague sem confirmar;
 nunca mostre JSON/IDs/jargão; fale na língua da pessoa; ao resolver, sempre passe `--project`.

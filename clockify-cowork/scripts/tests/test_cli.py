@@ -24,6 +24,18 @@ def _run(argv):
     return code, (json.loads(text) if text.strip() else None)
 
 
+def test_add_from_file_path_dry_run(monkeypatch, tmp_path):
+    # exercita o branch --json <arquivo> (Path.read_text) — regressão do import faltante
+    _seed_creds(monkeypatch, tmp_path)
+    f = tmp_path / "items.json"
+    f.write_text(
+        '[{"date":"2026-01-28","start":"9:00","end":"10:00","task":"Dev","project":"X"}]',
+        encoding="utf-8",
+    )
+    code, out = _run(["add", "--json", str(f), "--dry-run"])
+    assert code == 0 and out["dry_run"] is True
+
+
 def test_whoami_no_key(monkeypatch, tmp_path):
     monkeypatch.setenv("CLOCKIFY_DIR", str(tmp_path))
     code, out = _run(["whoami"])
