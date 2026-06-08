@@ -4,8 +4,9 @@ Este repo é, ao mesmo tempo, o **plugin** `clockify-plugin` e o **marketplace**
 
 ## Cortar um release
 
-> **Política de versão (v1.0.0 — lançada):** o `plugin.json` e a entrada no `marketplace.json`
-> estão **fixados em `version: "1.0.0"`**, em **lockstep**. Com `version` fixa, o Claude só
+> **Política de versão (versionado por release):** o `plugin.json` e a entrada no
+> `marketplace.json` carregam uma `version` semver **fixada em lockstep** (atual: ver
+> `CHANGELOG.md`). Com `version` fixa, o Claude só
 > oferece **"Atualizar"** quando o número **sobe** — **pushar commit sem bumpar não atualiza
 > ninguém** (`/plugin update` reporta "já está na última versão"). A cada release, **bumpe a
 > `version` nos dois pontos** (`clockify-plugin/.claude-plugin/plugin.json` e a entrada em
@@ -30,8 +31,10 @@ Este repo é, ao mesmo tempo, o **plugin** `clockify-plugin` e o **marketplace**
 /clockify
 ```
 
-O `/clockify` faz o onboarding: pede a API key, valida e salva em `.clockify/credentials.json`
-na pasta do projeto. Nenhuma dependência extra além do Claude desktop app.
+O `/clockify` faz **todo o setup**: pede a API key e conecta a **agenda do Outlook (obrigatória)**,
+salvando em `.clockify/credentials.json` na pasta do projeto. `/clockify-tracking` e
+`/clockify-report` só rodam numa pasta já configurada. Nenhuma dependência extra além do Claude
+desktop app.
 
 ## Validação local
 

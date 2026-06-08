@@ -55,7 +55,7 @@ antes de gravar. Lançamento duplicado é evitado automaticamente.
 
 Tudo é **por-projeto e fica fora do repositório** (em `.clockify/` na pasta aberta no Cowork):
 
-- `credentials.json` (modo 0600) — API key, workspace_id/user_id em cache, ICS URL opcional.
+- `credentials.json` (modo 0600) — API key, workspace_id/user_id em cache, ICS URL (obrigatória).
 - `prefs.json` — atividade padrão + learned (palavra-chave → projeto/tarefa/tag).
 
 `.clockify/` deve estar no `.gitignore` do seu projeto — o plugin avisa se não estiver.
@@ -76,7 +76,7 @@ o "IO confiável" é uma CLI Python zero-dependência (`clockify-plugin/scripts/
 
 ```bash
 cd clockify-plugin/scripts
-python3 -m pytest -q        # 90 testes, stdlib only, sem uv
+python3 -m pytest -q        # 110 testes, stdlib only, sem uv
 ```
 
 Política de versão e processo de release: ver **`MAINTAINER.md`**.
