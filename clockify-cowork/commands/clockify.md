@@ -8,6 +8,11 @@ estiver vazio, oriente a pessoa, em linguagem leiga, a clicar em **"Trabalhar em
 e criar/escolher uma pasta (a config não persiste sem isso) — e **pare** até existir. (Mesma
 verificação da skill `clockify-tracking`.)
 
+**Como rodar o CLI:** se `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/clockify_cli ...` não rodar no
+terminal (sandbox não enxerga o plugin), use a cópia local **atualizada** como na skill
+`clockify-tracking`, seção "Como rodar o CLI" (sempre `rm -rf .clockify/bin/clockify_cli` +
+recopiar do plugin + `python3 -B`) — nunca reuse cópia velha.
+
 **Passo 2 — conexão.** Com projeto confirmado, rode
 `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/clockify_cli whoami`.
 - `{"error":"NO_KEY"}` → use a skill **clockify-tracking** para conectar (peça a chave —

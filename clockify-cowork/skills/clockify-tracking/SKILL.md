@@ -33,14 +33,20 @@ Cada comando imprime UMA linha JSON.
 
 **Fallback (comum — NÃO é erro, não mostre "bug" pra pessoa):** em muitos ambientes do Cowork
 o terminal do sandbox **não enxerga** a pasta do plugin; o normal é rodar de uma cópia local
-em `.clockify/bin/`. Decida em silêncio:
-- Se `.clockify/bin/clockify_cli` **já existe** (sessão anterior — a pasta do projeto persiste),
-  use `python3 .clockify/bin/clockify_cli <subcomando>` direto.
-- Senão, e se `python3 ${CLAUDE_PLUGIN_ROOT}/...` falhar com "No such file or directory":
-  copie UMA vez com as **ferramentas de arquivo** (enxergam os paths reais do Mac mesmo quando
-  o terminal não monta) — Glob/Read os `.py` de `${CLAUDE_PLUGIN_ROOT}/scripts/clockify_cli/`
-  e Write em `.clockify/bin/clockify_cli/`; depois use `python3 .clockify/bin/clockify_cli`.
-  (NÃO use `cp` no terminal — se ele não vê o plugin, `cp` também não veria.)
+em `.clockify/bin/`. ⚠️ Essa cópia mora na pasta do projeto e **persiste** — então ela fica
+VELHA depois que o plugin é atualizado. Por isso, ao usar a cópia local, **SEMPRE atualize-a
+antes de rodar** (NUNCA reuse a cópia anterior às cegas — foi cache velho de `.py`/`.pyc` que
+travou correções já publicadas). Uma vez no começo da conversa:
+1. **Limpe a cópia antiga** (inclui o bytecode): no terminal, `rm -rf .clockify/bin/clockify_cli`
+   (o terminal alcança `.clockify/`, que está montada).
+2. **Recrie do plugin ATUAL**: com as **ferramentas de arquivo** (enxergam os paths reais do
+   Mac mesmo quando o terminal não monta), Glob/Read TODOS os `.py` de
+   `${CLAUDE_PLUGIN_ROOT}/scripts/clockify_cli/` e Write em `.clockify/bin/clockify_cli/`.
+3. **Rode** com `python3 -B .clockify/bin/clockify_cli <subcomando>` (`-B` ignora bytecode velho).
+   (NÃO use `cp` no terminal — se ele não vê o plugin, `cp` também não veria.)
+
+Se `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/clockify_cli ...` rodar direto no terminal, use-o e
+dispense a cópia local (sem risco de cache).
 
 ## Datas — SEMPRE pelo sistema, NUNCA de cabeça
 
