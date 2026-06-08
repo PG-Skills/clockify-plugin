@@ -1,111 +1,78 @@
-# clockify-plugin
+# pg-clockify
 
-> Lança suas horas no Clockify automaticamente, a partir da sua agenda do Outlook —
-> conversando com o Claude Code. Cada pessoa pluga as próprias credenciais;
+> Lança suas horas no Clockify conversando com o Claude — direto no **Cowork** (Claude desktop app),
+> sobre a sua pasta de projeto local. Cada pessoa usa suas próprias credenciais;
 > **nada seu fica no repositório.**
 
 Ferramenta interna da **PG**, desenvolvida pelo time **AI Product Innovation**.
-Funciona em **macOS, Windows e Linux**.
 
 ## O que ele faz
 
-- 📅 Lê sua agenda do **Outlook** (link ICS) e transforma as reuniões do dia em lançamentos no **Clockify**.
-- ✅ Mostra tudo em **simulação** primeiro — só grava depois do seu "pode lançar".
-- 🧠 **Aprende** suas atividades recorrentes (ex.: "daily do projeto X" → projeto/tarefa certos), pra perguntar cada vez menos.
-- 🗓️ Lança **um dia** (`/lancar`) ou **vários de uma vez** (`/lancar-dias`, ótimo pra fechar o mês retroativo).
+- Converte entradas de agenda (ICS) ou descrições livres em lançamentos no **Clockify**.
+- Mostra um resumo em **simulação** primeiro — só grava depois da sua confirmação.
+- **Aprende** suas atividades recorrentes (ex.: "daily do projeto X" → projeto/tarefa certos).
+- Lança **um dia** ou **um período** de uma vez (ótimo para fechar o mês retroativo).
 
-## Pré-requisito (1 minuto): instalar o `uv`
+## Pré-requisito
 
-A única dependência é o **`uv`**. **Você não precisa ter Python instalado** — o `uv` baixa um Python gerenciado sozinho.
+O **Claude desktop app** ("Cowork") com acesso à pasta do seu projeto.
+Nenhuma outra dependência: a CLI Python usa apenas stdlib.
 
-- **macOS / Linux:**
-  ```bash
-  curl -LsSf https://astral.sh/uv/install.sh | sh
-  ```
-- **Windows (PowerShell):**
-  ```powershell
-  powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-  ```
-
-Se você esquecer, o `/clockify-setup` avisa e mostra como instalar.
-
-## Instalar (3 comandos no Claude Code)
+## Instalar (3 passos no Cowork)
 
 ```
 /plugin marketplace add https://github.com/PG-Skills/clockify-plugin.git
-/plugin install clockify-plugin@pg-clockify
-/clockify-setup
+/plugin install clockify-cowork@pg-clockify
 ```
 
-- O `/clockify-setup` faz um **onboarding guiado**: sua API key do Clockify, o link ICS do Outlook (opcional) e uma atividade padrão (opcional). No fim, ele **valida** a configuração pra você.
-- A CLI Python que faz o trabalho pesado **se instala sozinha** na primeira sessão (via `uv`). Você não precisa mexer nela.
+Na primeira sessão, use `/clockify` para conectar:
+
+```
+/clockify
+```
+
+O plugin pergunta sua API key do Clockify, valida e salva em `.clockify/credentials.json`
+(pasta do projeto, nunca versionado). Pronto — um passo único.
 
 ## Usar no dia a dia
 
 | Comando | O que faz |
 |---|---|
-| `/lancar` | Lança **hoje** a partir da agenda do Outlook. |
-| `/lancar 2026-01-28` | Lança um **dia específico**. |
-| `/lancar-dias` | Lança **vários dias** de uma vez (ex.: o mês inteiro). Funciona **sem** ICS. |
-| `/clockify-setup` | Reconfigura credenciais, ICS ou a atividade padrão. |
+| `/clockify` | Verifica conexão / reconfigura credenciais. |
+| `/clockify-tracking` | Lança **hoje** (ou um período) no Clockify. |
+| `/clockify-tracking 2026-01-28` | Lança um **dia específico**. |
+| `/clockify-tracking 2026-05-01 2026-05-31` | Lança um **intervalo de datas**. |
 
-Em qualquer fluxo, o Claude **mostra um resumo** do que vai lançar e **espera sua confirmação** antes de gravar. Lançamento duplicado é evitado automaticamente (ele checa o que já existe no dia).
+Em qualquer fluxo, o Claude mostra um resumo do que vai lançar e espera sua confirmação
+antes de gravar. Lançamento duplicado é evitado automaticamente.
 
 ## Onde ficam os seus dados
 
-Tudo é **por-usuário e fica fora do repositório**:
+Tudo é **por-projeto e fica fora do repositório** (em `.clockify/` na pasta aberta no Cowork):
 
-- **Sua config** (API key, ICS, atividade padrão):
-  `~/.config/clockify-plugin/config.json` (macOS/Linux) ou
-  `%APPDATA%\clockify-plugin\config.json` (Windows).
-- **Atividades aprendidas** (palavra-chave → projeto/tarefa):
-  `~/.config/clockify-plugin/learned.json` (ou `%APPDATA%`), só na sua máquina.
+- `credentials.json` (modo 0600) — API key, workspace_id/user_id em cache, ICS URL opcional.
+- `prefs.json` — atividade padrão + learned (palavra-chave → projeto/tarefa/tag).
 
-A **atividade padrão é opcional**: quem atua em vários clientes sem uma tarefa dominante pode
-pular — o plugin aprende sozinho a cada lançamento. Não há **nenhum** dado de cliente nem
-credencial no repositório.
+`.clockify/` deve estar no `.gitignore` do seu projeto — o plugin avisa se não estiver.
+**Nenhum** dado de cliente nem credencial vai para este repositório.
 
 ## Problemas comuns
 
-- **"Configuração faltando…"** → rode `/clockify-setup` (ou `clockify-plugin config doctor` pra um diagnóstico).
-- **`uv` não encontrado** → instale o `uv` (seção acima) e abra uma nova sessão.
-- **Lançou no projeto/tarefa errado** → ensine a atividade certa: o plugin pergunta e passa a
-  reconhecer sozinho. Por baixo, isso vira uma entrada em `learned.json`.
-- **O mesmo nome de tarefa existe em mais de um projeto** → qualifique pelo projeto
-  (o `/clockify-setup` e o fluxo perguntam quando há ambiguidade).
+- **"Sem credenciais"** → rode `/clockify` para configurar (ou defina `CLOCKIFY_DIR` + `credentials.json` manualmente).
+- **Lançou no projeto/tarefa errado** → ensine a atividade certa: o plugin pergunta e passa a reconhecer sozinho.
+- **O mesmo nome de tarefa existe em mais de um projeto** → qualifique pelo projeto quando o plugin perguntar.
 
 ---
 
 ## Para mantenedores / desenvolvedores
 
-O "cérebro" é o slash command (orquestra a conversa); o "IO confiável" é uma CLI Python fina
-(`clockify-plugin`). Código em `plugins/clockify-plugin/`.
+O "cérebro" é a skill conversacional (`clockify-cowork/skills/clockify-tracking/SKILL.md`);
+o "IO confiável" é uma CLI Python zero-dependência (`clockify-cowork/scripts/clockify_cli/`).
 
 ```bash
-cd plugins/clockify-plugin
-uv sync
-uv run pytest -q
-uv run ruff check .
-uv run pyright
-uv run clockify-plugin --help
+cd clockify-cowork/scripts
+python3 -m pytest -q        # 45 testes, stdlib only, sem uv
 ```
-
-CLI direta (uso avançado):
-
-```bash
-clockify-plugin config show
-clockify-plugin config doctor
-clockify-plugin agenda --date 2026-01-28
-clockify-plugin workspaces
-clockify-plugin meta
-clockify-plugin entries --date 2026-01-28
-clockify-plugin business-days --start 2026-05-01 --end 2026-05-31
-clockify-plugin add --file lancamentos.json --dry-run
-clockify-plugin learned list
-```
-
-Variáveis de ambiente (`CLOCKIFY_API_KEY`, `CLOCKIFY_WORKSPACE_ID`, `OUTLOOK_ICS_URL`) têm
-precedência sobre o arquivo de config (útil em CI).
 
 Política de versão e processo de release: ver **`MAINTAINER.md`**.
 

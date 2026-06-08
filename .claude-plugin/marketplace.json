@@ -8,12 +8,6 @@
       "source": "./clockify-cowork",
       "version": "1.0.0",
       "description": "Lança horas no Clockify pelo Cowork via skill + CLI local (sem servidor)."
-    },
-    {
-      "name": "clockify-plugin",
-      "source": "./plugins/clockify-plugin",
-      "version": "1.0.0",
-      "description": "Lançador de horas Clockify via Outlook (ICS) com onboarding guiado."
     }
   ]
 }
