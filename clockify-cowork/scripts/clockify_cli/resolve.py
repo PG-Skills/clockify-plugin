@@ -1,0 +1,153 @@
+"""Resolução direcionada (nome -> IDs) e gravação em lote com anti-duplicata.
+Porta SÍNCRONA de server/resolve.py — mesma lógica, sem async. `cl` aponta para o
+módulo clockify (substituível nos testes)."""
+
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
+
+import clockify as cl
+from pure import range_window_utc, to_utc_iso
+
+_TZ = ZoneInfo("America/Sao_Paulo")
+
+
+def _candidatos(items: list[dict]) -> list[dict]:
+    return [{"id": it["id"], "name": it.get("name", "")} for it in items]
+
+
+def resolve_activity(api_key, workspace_id, *, name, project=None, tag=None) -> dict:
+    if project is None:
+        return {"status": "AMBIGUO", "motivo": "projeto necessário", "candidatos": []}
+
+    projs = cl.search_projects(api_key, workspace_id, project)
+    if len(projs) == 0:
+        return {
+            "status": "NAO_ENCONTRADO",
+            "motivo": "projeto não encontrado",
+            "candidatos": [],
+        }
+    if len(projs) > 1:
+        return {
+            "status": "AMBIGUO",
+            "motivo": "projeto ambíguo",
+            "candidatos": _candidatos(projs),
+        }
+    project_id = projs[0]["id"]
+
+    tasks = cl.tasks_in_project(api_key, workspace_id, project_id, name)
+    if len(tasks) == 0:
+        return {
+            "status": "NAO_ENCONTRADO",
+            "motivo": "tarefa não encontrada",
+            "candidatos": [],
+        }
+    if len(tasks) > 1:
+        return {
+            "status": "AMBIGUO",
+            "motivo": "tarefa ambígua",
+            "candidatos": _candidatos(tasks),
+        }
+    task_id = tasks[0]["id"]
+
+    tag_ids: list[str] = []
+    if tag:
+        tags = cl.search_tags(api_key, workspace_id, tag)
+        if len(tags) == 0:
+            return {
+                "status": "NAO_ENCONTRADO",
+                "motivo": "etiqueta não encontrada",
+                "candidatos": [],
+            }
+        if len(tags) > 1:
+            return {
+                "status": "AMBIGUO",
+                "motivo": "etiqueta ambígua",
+                "candidatos": _candidatos(tags),
+            }
+        tag_ids = [tags[0]["id"]]
+
+    return {
+        "status": "OK",
+        "project_id": project_id,
+        "task_id": task_id,
+        "tag_ids": tag_ids,
+    }
+
+
+def _local_dt(d: str, hhmm: str) -> datetime:
+    return datetime.fromisoformat(f"{d}T{hhmm}").replace(tzinfo=_TZ)
+
+
+def _entry_local_date(entry: dict) -> str | None:
+    start = (entry.get("timeInterval") or {}).get("start")
+    if not start:
+        return None
+    dt = datetime.fromisoformat(start.replace("Z", "+00:00"))
+    return dt.astimezone(_TZ).date().isoformat()
+
+
+def add_entries(api_key, workspace_id, user_id, items: list[dict]) -> dict:
+    total = len(items)
+    if total == 0:
+        return {
+            "gravados": 0,
+            "total": 0,
+            "pulados_duplicata": 0,
+            "falhou_em": None,
+            "motivo": None,
+        }
+
+    datas = [date.fromisoformat(it["date"]) for it in items]
+    win_start, win_end = range_window_utc(min(datas), max(datas), _TZ)
+    existentes = cl.entries(api_key, workspace_id, user_id, win_start, win_end)
+    ja_existe: set[tuple[str, str]] = set()
+    for e in existentes:
+        d = _entry_local_date(e)
+        tid = e.get("taskId")
+        if d and tid:
+            ja_existe.add((d, tid))
+
+    gravados = 0
+    pulados = 0
+    for idx, item in enumerate(items):
+        res = resolve_activity(
+            api_key,
+            workspace_id,
+            name=item["task"],
+            project=item.get("project"),
+            tag=item.get("tag"),
+        )
+        if res["status"] != "OK":
+            return {
+                "gravados": gravados,
+                "total": total,
+                "pulados_duplicata": pulados,
+                "falhou_em": idx,
+                "motivo": res["motivo"],
+            }
+
+        chave = (item["date"], res["task_id"])
+        if chave in ja_existe:
+            pulados += 1
+            continue
+
+        payload = {
+            "start": to_utc_iso(_local_dt(item["date"], item["start"])),
+            "end": to_utc_iso(_local_dt(item["date"], item["end"])),
+            "description": item.get("description", ""),
+            "projectId": res["project_id"],
+            "taskId": res["task_id"],
+            "tagIds": res["tag_ids"],
+            "billable": item.get("billable", False),
+        }
+        cl.create_entry(api_key, workspace_id, payload)
+        gravados += 1
+        ja_existe.add(chave)
+
+    return {
+        "gravados": gravados,
+        "total": total,
+        "pulados_duplicata": pulados,
+        "falhou_em": None,
+        "motivo": None,
+    }
