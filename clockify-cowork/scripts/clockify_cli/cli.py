@@ -274,6 +274,7 @@ def main(argv=None, *, stdout=None) -> int:
             return EXIT_OK
 
         if args.cmd == "report":
+            from datetime import datetime
             from zoneinfo import ZoneInfo
 
             tz = ZoneInfo("America/Sao_Paulo")
@@ -287,13 +288,22 @@ def main(argv=None, *, stdout=None) -> int:
             if args.month:  # modo diário
                 y, m = _parse_month(args.month)
                 w_start, w_end = pure.month_window_utc(y, m, tz)
-                ents = clockify.entries(creds["api_key"], ws, uid, w_start, w_end)
+                ents = clockify.entries(
+                    creds["api_key"], ws, uid, w_start, w_end, hydrated=True
+                )
+                days = pure.hours_by_day(ents, tz)
+                today = datetime.now(tz).date()
                 _emit(
                     {
                         "mode": "daily",
                         "month": args.month,
                         "total_hours": pure.total_hours(ents),
-                        "days": pure.hours_by_day(ents, tz),
+                        "days": days,
+                        "summary": pure.summary_days(days),
+                        "gaps": pure.business_day_gaps(
+                            y, m, [d["date"] for d in days], today
+                        ),
+                        "by_project": pure.hours_by_project(ents),
                     },
                     stdout,
                 )
@@ -313,12 +323,17 @@ def main(argv=None, *, stdout=None) -> int:
                     return EXIT_UNKNOWN
                 w_start, _ = pure.month_window_utc(sy, sm, tz)
                 _, w_end = pure.month_window_utc(ey, em, tz)
-                ents = clockify.entries(creds["api_key"], ws, uid, w_start, w_end)
+                ents = clockify.entries(
+                    creds["api_key"], ws, uid, w_start, w_end, hydrated=True
+                )
+                months = pure.hours_by_month(ents, tz)
                 _emit(
                     {
                         "mode": "monthly",
                         "total_hours": pure.total_hours(ents),
-                        "months": pure.hours_by_month(ents, tz),
+                        "months": months,
+                        "summary": pure.summary_months(months),
+                        "by_project": pure.hours_by_project(ents),
                     },
                     stdout,
                 )

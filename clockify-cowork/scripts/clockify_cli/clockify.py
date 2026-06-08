@@ -63,19 +63,26 @@ def search_tags(api_key: str, workspace_id: str, name: str) -> list[dict]:
 
 
 def entries(
-    api_key: str, workspace_id: str, user_id: str, start: str, end: str
+    api_key: str,
+    workspace_id: str,
+    user_id: str,
+    start: str,
+    end: str,
+    hydrated: bool = False,
 ) -> list[dict]:
-    """Time-entries crus na janela [start, end] (ISO UTC). GET paginado até página incompleta."""
+    """Time-entries na janela [start, end] (ISO UTC). GET paginado até página incompleta.
+
+    `hydrated=True` pede a resposta com `project`/`task`/`tags` expandidos como objetos
+    (em vez de só IDs) — usado pelo report para mostrar o NOME do projeto sem listar o
+    workspace inteiro. O caminho de lançamento/anti-duplicata não hidrata (não precisa)."""
     path = f"{BASE}/workspaces/{workspace_id}/user/{user_id}/time-entries"
     items: list[dict] = []
     page = 1
     while True:
-        batch = http_json.request_json(
-            "GET",
-            path,
-            api_key=api_key,
-            params={"start": start, "end": end, "page": page, "page-size": _PAGE_SIZE},
-        )
+        params = {"start": start, "end": end, "page": page, "page-size": _PAGE_SIZE}
+        if hydrated:
+            params["hydrated"] = "true"
+        batch = http_json.request_json("GET", path, api_key=api_key, params=params)
         items.extend(batch)
         if len(batch) < _PAGE_SIZE:
             return items

@@ -81,6 +81,30 @@ def test_entries_paginates(monkeypatch):
     assert len(out) == 201
 
 
+def test_entries_hydrated_adds_param(monkeypatch):
+    seen = {}
+
+    def handler(m, u, p, b):
+        seen.update(p or {})
+        return []  # vazio -> para na 1ª página
+
+    _patch(monkeypatch, handler)
+    clockify.entries("K", "ws1", "u1", "S", "E", hydrated=True)
+    assert seen.get("hydrated") == "true"
+
+
+def test_entries_not_hydrated_by_default(monkeypatch):
+    seen = {}
+
+    def handler(m, u, p, b):
+        seen.update(p or {})
+        return []
+
+    _patch(monkeypatch, handler)
+    clockify.entries("K", "ws1", "u1", "S", "E")
+    assert "hydrated" not in seen
+
+
 def test_create_entry_posts(monkeypatch):
     seen = {}
 

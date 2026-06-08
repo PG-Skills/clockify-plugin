@@ -98,6 +98,12 @@ Você (modelo) **erra conta de calendário** — então **nunca** deduza data me
      `{"error":"ICS_ERROR",...}`, diga em linguagem simples que o link não funcionou (confirme
      que usou *Publicar* e que é o `.ics`) e ofereça tentar de novo ou pular.
 
+**Manual rápido (só na 1ª conexão).** Se a pessoa acabou de conectar AGORA (colou a chave
+nesta conversa), apresente o mini-manual de boas-vindas: leia
+`${CLAUDE_PLUGIN_ROOT}/skills/clockify-tracking/references/manual-rapido.md` (ferramenta de
+arquivo) e apresente-o **na língua da pessoa**, seguindo as regras de lá. É um onboarding de
+~20 segundos; se ela já estava conectada (não colou chave agora), pule e siga normal.
+
 Leia as preferências UMA vez: `... prefs get` → guarde `default` (pode ser `{}`) e a lista
 `learned` (cada item tem `match` e `project`, às vezes `task`/`tag`/`billable`).
 

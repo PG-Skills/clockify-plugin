@@ -263,44 +263,58 @@ def test_report_daily(monkeypatch, tmp_path):
     monkeypatch.setattr(
         clockify, "get_user", lambda k: (_ for _ in ()).throw(AssertionError("cache"))
     )
-    monkeypatch.setattr(
-        clockify,
-        "entries",
-        lambda key, ws, uid, s, e: [
+    seen = {}
+
+    def fake_entries(key, ws, uid, s, e, hydrated=False):
+        seen["hydrated"] = hydrated
+        return [
             {
                 "timeInterval": {
                     "start": "2026-06-01T12:00:00Z",
                     "end": "2026-06-01T13:00:00Z",
-                }
+                },
+                "project": {"id": "p1", "name": "San Pablo"},
             },
-        ],
-    )
+        ]
+
+    monkeypatch.setattr(clockify, "entries", fake_entries)
     code, out = _run(["report", "--month", "2026-06"])
     assert code == 0 and out["mode"] == "daily" and out["month"] == "2026-06"
     assert out["total_hours"] == 1.0 and out["days"] == [
         {"date": "2026-06-01", "hours": 1.0}
     ]
+    assert seen["hydrated"] is True  # report pede entries hidratados (nome do projeto)
+    assert out["summary"]["days_logged"] == 1
+    assert out["summary"]["max_day"]["hours"] == 1.0
+    assert out["by_project"] == [{"project": "San Pablo", "hours": 1.0}]
+    assert isinstance(
+        out["gaps"], list
+    )  # lacunas dependem de "hoje" (não-determinístico aqui)
 
 
 def test_report_monthly(monkeypatch, tmp_path):
     _seed_creds(monkeypatch, tmp_path)
-    monkeypatch.setattr(
-        clockify,
-        "entries",
-        lambda key, ws, uid, s, e: [
+
+    def fake_entries(key, ws, uid, s, e, hydrated=False):
+        return [
             {
                 "timeInterval": {
                     "start": "2026-01-15T12:00:00Z",
                     "end": "2026-01-15T20:00:00Z",
-                }
+                },
+                "project": {"id": "p1", "name": "San Pablo"},
             },
-        ],
-    )
+        ]
+
+    monkeypatch.setattr(clockify, "entries", fake_entries)
     code, out = _run(["report", "--start", "2026-01", "--end", "2026-03"])
     assert code == 0 and out["mode"] == "monthly"
     assert out["total_hours"] == 8.0 and out["months"] == [
         {"month": "2026-01", "hours": 8.0}
     ]
+    assert out["summary"]["months_logged"] == 1
+    assert out["by_project"] == [{"project": "San Pablo", "hours": 8.0}]
+    assert "gaps" not in out  # lacunas só no modo diário
 
 
 def test_report_range_over_12_months(monkeypatch, tmp_path):

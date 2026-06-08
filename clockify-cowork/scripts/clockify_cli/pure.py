@@ -120,3 +120,80 @@ def hours_by_month(entries: list[dict], tz: ZoneInfo) -> list[dict]:
         key = f"{dt.year:04d}-{dt.month:02d}"
         acc[key] = acc.get(key, 0.0) + secs
     return [{"month": k, "hours": round(v / 3600, 2)} for k, v in sorted(acc.items())]
+
+
+def _project_label(entry: dict) -> str | None:
+    """Nome do projeto de um entry. Lê `project.name` (resposta hidratada); se ausente,
+    cai para `projectId` (não funde projetos distintos quando a hidratação falha). `None`
+    quando não há projeto algum -> a skill verbaliza 'Sem projeto'."""
+    proj = entry.get("project")
+    if isinstance(proj, dict):
+        return proj.get("name") or entry.get("projectId")
+    return entry.get("projectId")
+
+
+def hours_by_project(entries: list[dict]) -> list[dict]:
+    """`[{project, hours}]` agregado por projeto, ordenado por horas desc (depois nome).
+    Entradas em aberto (sem end) são ignoradas. Projeto desconhecido -> `project: None`."""
+    acc: dict[str, list] = {}  # key -> [label, segundos]
+    for e in entries:
+        secs = _entry_seconds(e)
+        if secs <= 0:
+            continue
+        label = _project_label(e)
+        key = (
+            label if label is not None else "\x00sem"
+        )  # bucket único para "sem projeto"
+        if key not in acc:
+            acc[key] = [label, 0.0]
+        acc[key][1] += secs
+    out = [{"project": lbl, "hours": round(s / 3600, 2)} for lbl, s in acc.values()]
+    out.sort(key=lambda d: (-d["hours"], d["project"] or ""))
+    return out
+
+
+def business_day_gaps(year: int, month: int, logged_dates, today: date) -> list[str]:
+    """Dias úteis (seg–sex) do mês (year, month) SEM lançamento e **anteriores a hoje**.
+
+    `logged_dates`: datas ISO ('YYYY-MM-DD') que já têm horas. `today`: data local atual
+    (injetada -> função pura). O corte `< today` cobre os dois casos: mês passado (todos os
+    dias úteis entram) e mês corrente (só os já vencidos; não cobra o próprio dia de hoje).
+    Não conhece feriados — a skill avisa para conferir."""
+    logged = set(logged_dates)
+    first = date(year, month, 1)
+    last = (
+        date(year + 1, 1, 1) if month == 12 else date(year, month + 1, 1)
+    ) - timedelta(days=1)
+    return [
+        d.isoformat()
+        for d in business_days(first, last)
+        if d < today and d.isoformat() not in logged
+    ]
+
+
+def summary_days(days: list[dict]) -> dict:
+    """Resumo do modo diário a partir de `days` ([{date, hours}]): nº de dias lançados,
+    média por dia lançado e o dia mais cheio. Lista vazia -> zeros e `max_day: None`."""
+    if not days:
+        return {"days_logged": 0, "avg_hours": 0.0, "max_day": None}
+    total = sum(d["hours"] for d in days)
+    mx = max(days, key=lambda d: d["hours"])
+    return {
+        "days_logged": len(days),
+        "avg_hours": round(total / len(days), 2),
+        "max_day": {"date": mx["date"], "hours": mx["hours"]},
+    }
+
+
+def summary_months(months: list[dict]) -> dict:
+    """Resumo do modo mensal a partir de `months` ([{month, hours}]): nº de meses com horas,
+    média por mês e o mês mais cheio. Lista vazia -> zeros e `max_month: None`."""
+    if not months:
+        return {"months_logged": 0, "avg_hours": 0.0, "max_month": None}
+    total = sum(m["hours"] for m in months)
+    mx = max(months, key=lambda m: m["hours"])
+    return {
+        "months_logged": len(months),
+        "avg_hours": round(total / len(months), 2),
+        "max_month": {"month": mx["month"], "hours": mx["hours"]},
+    }

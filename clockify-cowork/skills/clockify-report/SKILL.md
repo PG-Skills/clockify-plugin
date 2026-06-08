@@ -28,11 +28,23 @@ terminal quando a pessoa falar relativo ("mês passado", "últimos 3 meses"): ex
 2. **Diário:** pergunte qual mês → resolva/confirme (AAAA-MM) → rode
    `... report --month AAAA-MM`. Apresente uma lista limpa: cada dia com horas (formate
    bonito, ex. "8h", "7h30") e o **total** do mês. Dias sem lançamento simplesmente não
-   aparecem (mencione se a pessoa perguntar).
+   aparecem (mencione se a pessoa perguntar). Depois **enriqueça** com o que vier no JSON:
+   - `summary`: diga em UMA frase a **média por dia** (`avg_hours`) e o **dia mais cheio**
+     (`max_day` → data + horas). Ex.: *"média de 8h12/dia, dia mais cheio foi qua 03/06 (9h)"*.
+   - `by_project`: liste as horas **por projeto** (`[{project, hours}]`, já ordenado do maior
+     pro menor). Ex.: *"Por projeto: Farmácia San Pablo 24h · Interno 17h"*. Se `project` vier
+     `null`, chame de **"Sem projeto"**; se vier algo que pareça um código (sem espaços, tipo
+     ID), diga **"projeto sem nome"** em vez de mostrar o código.
+   - `gaps`: dias **úteis sem registro** (anteriores a hoje). Se a lista não estiver vazia,
+     avise gentil: *"Faltou lançar (dias úteis sem registro): qui 04/06, sex 06/06 — confira se
+     algum foi feriado ou folga."* Se estiver vazia, pode dizer que está tudo em dia.
 3. **Mensal:** pergunte o intervalo de meses (**máx 12**) → resolva/confirme início e fim →
    rode `... report --start AAAA-MM --end AAAA-MM`. Apresente cada mês com seu total + o
-   total geral. Se vier `{"error":"INVALID_INPUT","reason":"max_12_meses"}`, explique gentil
-   que o limite é 12 meses e peça um intervalo menor.
+   total geral. Depois enriqueça: `summary` → **média por mês** (`avg_hours`) e **mês mais
+   cheio** (`max_month`); `by_project` → horas por projeto no período (mesma regra do diário).
+   O modo mensal **não** tem lacunas (`gaps`). Se vier
+   `{"error":"INVALID_INPUT","reason":"max_12_meses"}`, explique gentil que o limite é 12
+   meses e peça um intervalo menor.
 4. Formate horas de forma humana (ex.: 7.5 → "7h30", 8.0 → "8h"). Nunca despeje números crus
    sem contexto nem JSON.
 

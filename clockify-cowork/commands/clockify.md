@@ -29,3 +29,10 @@ recopiar do plugin + `python3 -B`) — nunca reuse cópia velha.
   reuniões do dia automaticamente? É opcional."* Se a pessoa topar, conduza pelo passo de
   Agenda da skill **clockify-tracking** (link do Outlook em **Publicar calendário**, NÃO
   Compartilhar). **Nunca mostre JSON/IDs nem despeje os eventos.**
+
+**Passo 3 — Manual rápido (boas-vindas).** Sempre que o Passo 2 terminar com a conexão OK
+(depois de tratar a agenda), **apresente um mini-manual** ensinando a pessoa leiga a usar o
+plugin: leia `${CLAUDE_PLUGIN_ROOT}/skills/clockify-tracking/references/manual-rapido.md`
+(ferramenta de arquivo) e apresente-o **adaptado à língua da pessoa**, seguindo as regras de
+lá (cada exemplo começa com a skill/comando; o exemplo de "hoje" reflete que eu puxo da agenda
+do Outlook primeiro; nada de JSON/IDs). Mantenha curto — é um onboarding de ~20 segundos.
