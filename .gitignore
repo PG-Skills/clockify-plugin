@@ -8,3 +8,6 @@ __pycache__/
 
 # Handoff de sessão (scaffolding local, não versionado)
 HANDOFF.md
+
+# Estado local do plugin (credenciais + prefs) — higiene de teste local
+.clockify/

@@ -1,0 +1,13 @@
+[project]
+name = "clockify-cli"
+version = "0.1.0"
+description = "CLI zero-dependência (stdlib) que lança horas no Clockify a partir do Cowork"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+pythonpath = ["clockify_cli"]
+testpaths = ["tests"]

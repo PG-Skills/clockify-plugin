@@ -1,12 +1,20 @@
 ---
-description: Confirma a conexão com o Clockify (PoC do connector remoto)
+description: Confere a conexão com o Clockify e mostra o que está configurado
 ---
 
-PoC do connector MCP remoto do Clockify. Para confirmar que a conexão está de pé, use a
-ferramenta **`whoami`** do servidor `clockify` — ela devolve o nome da conta conectada.
+**Passo 1 — projeto (pasta local).** Antes de tudo, confirme que a pessoa está num projeto:
+rode `pwd`; se for um lugar temporário (`/sessions/...` sem `/mnt/`) ou `CLAUDE_PROJECT_DIR`
+estiver vazio, oriente a pessoa, em linguagem leiga, a clicar em **"Trabalhar em um projeto"**
+e criar/escolher uma pasta (a config não persiste sem isso) — e **pare** até existir. (Mesma
+verificação da skill `clockify-tracking`.)
 
-Se for a primeira vez, o Cowork abre uma página (a tela da PG) pedindo a chave do Clockify:
-canto superior direito → *Preferences* → aba *Advanced* → *Generate*. Cole e autorize — só
-uma vez.
-
-> O fluxo de lançamento de horas (`/clockify-tracking`) vem na versão completa (Fundação).
+**Passo 2 — conexão.** Com projeto confirmado, rode
+`python3 ${CLAUDE_PLUGIN_ROOT}/scripts/clockify_cli whoami`.
+- `{"error":"NO_KEY"}` → use a skill **clockify-tracking** para conectar (peça a chave e
+  grave `.clockify/credentials.json`).
+- `{"error":"INVALID_KEY"}` → avise, em linguagem leiga, que a chave não funcionou.
+- `{"error":"HTTP_ERROR",...}` → diga que o Clockify não respondeu agora; ofereça tentar de novo.
+- Sucesso → confirme a conta conectada (use o `name`). Em seguida rode
+  `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/clockify_cli prefs get` e conte, em linguagem
+  natural, se há atividade padrão e quantas atividades aprendidas existem. **Nunca mostre
+  JSON/IDs.**

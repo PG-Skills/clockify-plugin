@@ -4,47 +4,43 @@ Wrapper fino para o Claude Code neste repositório. Detalhes de uso ficam no `RE
 
 ## Comandos principais
 
-Rodar dentro de `plugins/clockify-plugin/`:
+Rodar dentro de `clockify-cowork/scripts/`:
 
 ```bash
-uv sync                       # instalar deps
-uv run pytest -q              # testes
-uv run ruff check .           # lint
-uv run pyright                # type check
-uv run clockify-plugin --help  # CLI
+python3 -m pytest -q        # testes (stdlib only, sem uv)
 ```
 
 ## Arquitetura
 
-CLI fina (`clockify-plugin`) que lê a agenda do Outlook (ICS) e grava lançamentos no
-Clockify via API REST. Separação **cérebro / IO**: o slash command orquestra a conversa,
-a CLI só executa I/O confiável.
+Plugin `clockify-cowork/` = **skill conversacional** + **CLI Python zero-dependência** (stdlib).
+Roda no Claude desktop app ("Cowork") sobre uma pasta de projeto local.
+**Sem servidor, sem OAuth, sem VPS.**
 
-- `cli.py` — subcomandos `agenda`, `meta`, `entries` (`--date` ou `--start/--end`), `business-days`, `add` (`--dry-run`), `learned` (`list`/`add`).
-- `ics.py` — fetch + parse do ICS, **expande recorrências** (`recurring-ical-events`) e ignora `STATUS:CANCELLED`.
-- `clockify_api.py` — client HTTP (base `https://api.clockify.me/api/v1`), metadata paginada, entries por dia/intervalo, create.
-- `entries.py` — lógica pura: totais, `to_utc_iso`, `build_payload` (resolve nomes → IDs).
-- `learned.py` — store das atividades aprendidas (`learned.json`): `record` upsert por `match`, `read_learned`.
-- `bizdays.py` — dias úteis (seg–sex) de um intervalo. `config.py` — config XDG + precedência env. `models.py` — dataclasses.
-- Slash commands: `plugins/clockify-plugin/commands/lancar.md` (um dia via Outlook), `plugins/clockify-plugin/commands/lancar-dias.md` (vários dias / retroativo).
+- `clockify-cowork/skills/clockify-tracking/SKILL.md` — skill principal, orquestra a conversa.
+- `clockify-cowork/commands/clockify-tracking.md` — comando `/clockify-tracking` (lançar um dia ou período).
+- `clockify-cowork/commands/clockify.md` — comando `/clockify` (status / verificar conexão).
+- `clockify-cowork/scripts/clockify_cli/` — CLI zero-dep (Python stdlib):
+  - `cli.py` — subcomandos `whoami`, `entries` (`--date` ou `--start/--end`), `business-days`, `resolve`, `add` (`--dry-run`), `prefs` (`get`/`set-default`/`learn`/`forget`/`reset`).
+  - `clockify.py` — client HTTP para a API Clockify (`https://api.clockify.me/api/v1`).
+  - `http_json.py` — HTTP mínimo via `urllib` (sem requests).
+  - `config.py` — lê/escreve `.clockify/credentials.json` no projeto (api_key + workspace_id/user_id em cache + ics_url).
+  - `prefs.py` — preferências por projeto em `.clockify/prefs.json` (default projeto/tarefa/tag/billable + learned).
+  - `pure.py` — lógica pura: janelas UTC, dias úteis, resolução de payload.
+  - `resolve.py` — resolve nomes de projeto/tarefa/tag → IDs; `add_entries` com anti-duplicata.
 
 ## Convenções específicas (gotchas)
 
-- **Config por-usuário** em `~/.config/clockify-plugin/config.json` (macOS/Linux) ou
-  `%APPDATA%\clockify-plugin\config.json` (Windows); `$XDG_CONFIG_HOME` tem prioridade.
-  Variáveis de ambiente têm precedência sobre o arquivo (CI/testes). Criada/editada via
-  `/clockify-setup` ou o subcomando `clockify-plugin config set`.
-- **Tarefa resolve por NOME, globalmente** (`build_payload._resolve_task`) — o nome precisa
-  ser único entre projetos.
-- **Atividades aprendidas** (título/palavra-chave → projeto/tarefa) vivem em
-  `learned.json` por-usuário (fora do repo): o `add` aprende no sucesso e `learned add`
-  registra por palavra-chave. O **Claude** reconhece na conversa; o código não adivinha.
-  Não há dado de cliente no repo.
-- **ICS é opcional**: só o subcomando `agenda` (fluxo `/lancar`) precisa dele; `/lancar-dias`
-  funciona sem.
-- **Horários em UTC**: conversão de hora local (America/Sao_Paulo) em `to_utc_iso`.
-- **`add` é resiliente a falha parcial**: para no 1º erro, reporta "gravou N de M", sai ≠ 0.
-- **Sempre dry-run antes de gravar.** Anti-duplicata = `entries` + omitir dias já lançados.
+- **Config por-projeto** em `.clockify/` na pasta do projeto aberta no Cowork:
+  - `credentials.json` (modo 0600) — api_key, ics_url, workspace_id/user_id em cache.
+  - `prefs.json` — atividade padrão + learned (match → projeto/tarefa/tag).
+  - Variável de ambiente `CLOCKIFY_DIR` tem precedência (CI/testes). `CLAUDE_PROJECT_DIR` é a base automática no Cowork.
+  - `.clockify/` deve estar no `.gitignore` do projeto do usuário — nunca versionado.
+- **Onboarding**: o usuário cola a API key uma vez no chat; a skill escreve `credentials.json`. Sem passos manuais.
+- **Horários em UTC**: conversão de hora local (America/Sao_Paulo) em `pure.py`.
+- **Anti-duplicata**: `entries` verifica o que já existe antes de `add`.
+- **`add` é resiliente a falha parcial**: para no 1.º erro, reporta "gravou N de M", sai ≠ 0.
+- **Sempre dry-run antes de gravar.**
+- **Testes**: 100% stdlib, sem `uv`, sem dependências externas. `python3 -m pytest -q` direto em `clockify-cowork/scripts/`.
 
 ## Documentação relacionada
 
