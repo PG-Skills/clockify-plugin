@@ -250,3 +250,76 @@ def test_agenda_ics_error(monkeypatch, tmp_path):
     monkeypatch.setattr(ics_mod, "fetch_ics", boom)
     code, out = _run(["agenda", "--date", "2026-01-28"])
     assert code == 5 and out["error"] == "ICS_ERROR"
+
+
+def test_report_no_key(monkeypatch, tmp_path):
+    monkeypatch.setenv("CLOCKIFY_DIR", str(tmp_path))
+    code, out = _run(["report", "--month", "2026-06"])
+    assert code == 3 and out == {"error": "NO_KEY"}
+
+
+def test_report_daily(monkeypatch, tmp_path):
+    _seed_creds(monkeypatch, tmp_path)
+    monkeypatch.setattr(
+        clockify, "get_user", lambda k: (_ for _ in ()).throw(AssertionError("cache"))
+    )
+    monkeypatch.setattr(
+        clockify,
+        "entries",
+        lambda key, ws, uid, s, e: [
+            {
+                "timeInterval": {
+                    "start": "2026-06-01T12:00:00Z",
+                    "end": "2026-06-01T13:00:00Z",
+                }
+            },
+        ],
+    )
+    code, out = _run(["report", "--month", "2026-06"])
+    assert code == 0 and out["mode"] == "daily" and out["month"] == "2026-06"
+    assert out["total_hours"] == 1.0 and out["days"] == [
+        {"date": "2026-06-01", "hours": 1.0}
+    ]
+
+
+def test_report_monthly(monkeypatch, tmp_path):
+    _seed_creds(monkeypatch, tmp_path)
+    monkeypatch.setattr(
+        clockify,
+        "entries",
+        lambda key, ws, uid, s, e: [
+            {
+                "timeInterval": {
+                    "start": "2026-01-15T12:00:00Z",
+                    "end": "2026-01-15T20:00:00Z",
+                }
+            },
+        ],
+    )
+    code, out = _run(["report", "--start", "2026-01", "--end", "2026-03"])
+    assert code == 0 and out["mode"] == "monthly"
+    assert out["total_hours"] == 8.0 and out["months"] == [
+        {"month": "2026-01", "hours": 8.0}
+    ]
+
+
+def test_report_range_over_12_months(monkeypatch, tmp_path):
+    _seed_creds(monkeypatch, tmp_path)
+    code, out = _run(["report", "--start", "2025-01", "--end", "2026-02"])  # 14 meses
+    assert (
+        code == 2
+        and out["error"] == "INVALID_INPUT"
+        and out["reason"] == "max_12_meses"
+    )
+
+
+def test_report_requires_mode(monkeypatch, tmp_path):
+    _seed_creds(monkeypatch, tmp_path)
+    code, out = _run(["report"])
+    assert code == 2 and out["error"] == "INVALID_INPUT"
+
+
+def test_report_malformed_month(monkeypatch, tmp_path):
+    _seed_creds(monkeypatch, tmp_path)
+    code, out = _run(["report", "--month", "2026/06"])
+    assert code == 2 and out["error"] == "INVALID_INPUT"

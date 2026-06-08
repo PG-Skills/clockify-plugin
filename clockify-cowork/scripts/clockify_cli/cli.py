@@ -56,6 +56,17 @@ def _account(creds, stdout):
     return user["workspace_id"], user["id"]
 
 
+def _parse_month(s: str) -> tuple[int, int]:
+    """'YYYY-MM' -> (year, month). ValueError se malformado (cai em INVALID_INPUT)."""
+    parts = s.split("-")
+    if len(parts) != 2:
+        raise ValueError(f"mês inválido: {s}")
+    y, m = int(parts[0]), int(parts[1])
+    if not (1 <= m <= 12):
+        raise ValueError(f"mês inválido: {s}")
+    return y, m
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="clockify_cli")
     sub = p.add_subparsers(dest="cmd")
@@ -82,6 +93,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     ag = sub.add_parser("agenda")
     ag.add_argument("--date", required=True)
+
+    rp = sub.add_parser("report")
+    rp.add_argument("--month")
+    rp.add_argument("--start")
+    rp.add_argument("--end")
 
     pr = sub.add_parser("prefs")
     prs = pr.add_subparsers(dest="prefs_cmd")
@@ -256,6 +272,62 @@ def main(argv=None, *, stdout=None) -> int:
                 stdout,
             )
             return EXIT_OK
+
+        if args.cmd == "report":
+            from zoneinfo import ZoneInfo
+
+            tz = ZoneInfo("America/Sao_Paulo")
+            creds = _load_key(stdout)
+            if creds is None:
+                return EXIT_NO_KEY
+            acct = _account(creds, stdout)
+            if acct is None:
+                return EXIT_INVALID_KEY
+            ws, uid = acct
+            if args.month:  # modo diário
+                y, m = _parse_month(args.month)
+                w_start, w_end = pure.month_window_utc(y, m, tz)
+                ents = clockify.entries(creds["api_key"], ws, uid, w_start, w_end)
+                _emit(
+                    {
+                        "mode": "daily",
+                        "month": args.month,
+                        "total_hours": pure.total_hours(ents),
+                        "days": pure.hours_by_day(ents, tz),
+                    },
+                    stdout,
+                )
+                return EXIT_OK
+            if args.start and args.end:  # modo mensal
+                sy, sm = _parse_month(args.start)
+                ey, em = _parse_month(args.end)
+                n = (ey - sy) * 12 + (em - sm) + 1
+                if n < 1:
+                    _emit(
+                        {"error": "INVALID_INPUT", "reason": "intervalo_invertido"},
+                        stdout,
+                    )
+                    return EXIT_UNKNOWN
+                if n > 12:
+                    _emit({"error": "INVALID_INPUT", "reason": "max_12_meses"}, stdout)
+                    return EXIT_UNKNOWN
+                w_start, _ = pure.month_window_utc(sy, sm, tz)
+                _, w_end = pure.month_window_utc(ey, em, tz)
+                ents = clockify.entries(creds["api_key"], ws, uid, w_start, w_end)
+                _emit(
+                    {
+                        "mode": "monthly",
+                        "total_hours": pure.total_hours(ents),
+                        "months": pure.hours_by_month(ents, tz),
+                    },
+                    stdout,
+                )
+                return EXIT_OK
+            _emit(
+                {"error": "INVALID_INPUT", "reason": "use --month OU --start e --end"},
+                stdout,
+            )
+            return EXIT_UNKNOWN
 
         if args.cmd == "prefs":
             if args.prefs_cmd == "get":
