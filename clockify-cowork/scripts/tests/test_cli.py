@@ -197,3 +197,56 @@ def test_business_days_invalid_range(monkeypatch, tmp_path):
     monkeypatch.setenv("CLOCKIFY_DIR", str(tmp_path))
     code, out = _run(["business-days", "--start", "2026-02-02", "--end", "2026-01-30"])
     assert code == 2 and out["error"] == "INVALID_INPUT"
+
+
+def test_agenda_no_ics_configured(monkeypatch, tmp_path):
+    _seed_creds(monkeypatch, tmp_path)  # sem ics_url
+    code, out = _run(["agenda", "--date", "2026-01-28"])
+    assert code == 0 and out == {"ics": False, "eventos": []}
+
+
+def test_agenda_with_ics(monkeypatch, tmp_path):
+    import config
+    import ics as ics_mod
+
+    monkeypatch.setenv("CLOCKIFY_DIR", str(tmp_path))
+    config.save_credentials(
+        api_key="KEY", ics_url="https://x/y.ics", workspace_id="ws1", user_id="u1"
+    )
+    monkeypatch.setattr(ics_mod, "fetch_ics", lambda url: "ICSTEXT")
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    tz = ZoneInfo("America/Sao_Paulo")
+    monkeypatch.setattr(
+        ics_mod,
+        "events_for_day",
+        lambda txt, d, z: [
+            {
+                "title": "Daily",
+                "start": datetime(2026, 1, 28, 9, 0, tzinfo=tz),
+                "end": datetime(2026, 1, 28, 9, 30, tzinfo=tz),
+            }
+        ],
+    )
+    code, out = _run(["agenda", "--date", "2026-01-28"])
+    assert code == 0 and out["ics"] is True
+    assert out["eventos"][0]["title"] == "Daily"
+    assert out["eventos"][0]["start"].startswith("2026-01-28T09:00")
+
+
+def test_agenda_ics_error(monkeypatch, tmp_path):
+    import config
+    import ics as ics_mod
+
+    monkeypatch.setenv("CLOCKIFY_DIR", str(tmp_path))
+    config.save_credentials(
+        api_key="KEY", ics_url="https://x/y.ics", workspace_id="ws1", user_id="u1"
+    )
+
+    def boom(url):
+        raise ValueError("ics_url precisa usar https://")
+
+    monkeypatch.setattr(ics_mod, "fetch_ics", boom)
+    code, out = _run(["agenda", "--date", "2026-01-28"])
+    assert code == 5 and out["error"] == "ICS_ERROR"

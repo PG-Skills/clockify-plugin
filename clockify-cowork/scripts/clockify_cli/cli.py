@@ -11,6 +11,7 @@ from pathlib import Path
 import clockify
 import config
 import http_json
+import ics
 import prefs as prefs_mod
 import pure
 import resolve as resolve_mod
@@ -78,6 +79,9 @@ def build_parser() -> argparse.ArgumentParser:
     ad = sub.add_parser("add")
     ad.add_argument("--json", required=True, help="'-' para ler de stdin")
     ad.add_argument("--dry-run", action="store_true")
+
+    ag = sub.add_parser("agenda")
+    ag.add_argument("--date", required=True)
 
     pr = sub.add_parser("prefs")
     prs = pr.add_subparsers(dest="prefs_cmd")
@@ -215,6 +219,42 @@ def main(argv=None, *, stdout=None) -> int:
             ws, uid = acct
             out = resolve_mod.add_entries(creds["api_key"], ws, uid, items)
             _emit(out, stdout)
+            return EXIT_OK
+
+        if args.cmd == "agenda":
+            from datetime import date
+
+            creds = _load_key(stdout)
+            if creds is None:
+                return EXIT_NO_KEY
+            ics_url = creds.get("ics_url")
+            if not ics_url:
+                _emit({"ics": False, "eventos": []}, stdout)
+                return EXIT_OK
+            try:
+                text = ics.fetch_ics(ics_url)
+                from zoneinfo import ZoneInfo
+
+                evs = ics.events_for_day(
+                    text, date.fromisoformat(args.date), ZoneInfo("America/Sao_Paulo")
+                )
+            except (ValueError, OSError) as e:
+                _emit({"error": "ICS_ERROR", "reason": str(e)}, stdout)
+                return EXIT_HTTP
+            _emit(
+                {
+                    "ics": True,
+                    "eventos": [
+                        {
+                            "title": e["title"],
+                            "start": e["start"].isoformat(),
+                            "end": e["end"].isoformat(),
+                        }
+                        for e in evs
+                    ],
+                },
+                stdout,
+            )
             return EXIT_OK
 
         if args.cmd == "prefs":
