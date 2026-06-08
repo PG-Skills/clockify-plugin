@@ -31,14 +31,31 @@ o Task 0 observar. `CLAUDE_PROJECT_DIR` definido é um bom indicador de que há 
 Rode no terminal: `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/clockify_cli <subcomando> [args]`.
 Cada comando imprime UMA linha JSON.
 
-**Fallback (se o terminal não alcançar o plugin):** se esse comando falhar com algo como
-"No such file or directory", o terminal do sandbox não está montando a pasta do plugin.
-Faça UMA vez, com as **ferramentas de arquivo** (que enxergam os caminhos reais do Mac
-mesmo quando o terminal não os monta): use Glob/Read para ler todos os `.py` de
-`${CLAUDE_PLUGIN_ROOT}/scripts/clockify_cli/` e use Write para recriá-los em
-`.clockify/bin/clockify_cli/` na pasta do projeto; depois rode
-`python3 .clockify/bin/clockify_cli <subcomando>`. (NÃO dependa de `cp` no terminal — se o
-terminal não vê o plugin, `cp` também não veria.)
+**Fallback (comum — NÃO é erro, não mostre "bug" pra pessoa):** em muitos ambientes do Cowork
+o terminal do sandbox **não enxerga** a pasta do plugin; o normal é rodar de uma cópia local
+em `.clockify/bin/`. Decida em silêncio:
+- Se `.clockify/bin/clockify_cli` **já existe** (sessão anterior — a pasta do projeto persiste),
+  use `python3 .clockify/bin/clockify_cli <subcomando>` direto.
+- Senão, e se `python3 ${CLAUDE_PLUGIN_ROOT}/...` falhar com "No such file or directory":
+  copie UMA vez com as **ferramentas de arquivo** (enxergam os paths reais do Mac mesmo quando
+  o terminal não monta) — Glob/Read os `.py` de `${CLAUDE_PLUGIN_ROOT}/scripts/clockify_cli/`
+  e Write em `.clockify/bin/clockify_cli/`; depois use `python3 .clockify/bin/clockify_cli`.
+  (NÃO use `cp` no terminal — se ele não vê o plugin, `cp` também não veria.)
+
+## Datas — SEMPRE pelo sistema, NUNCA de cabeça
+
+Você (modelo) **erra conta de calendário** — então **nunca** deduza data mentalmente:
+
+1. **Hoje real:** rode `date +"%Y-%m-%d (%A)"` no terminal. Nunca assuma que dia/data é hoje.
+2. **Datas relativas / por dia da semana** ("terça passada", "ontem", "semana passada",
+   "dia 3"): **calcule com o `date` do terminal** (GNU/Linux no sandbox), traduzindo a
+   expressão só pra calcular — ex.: `date -d "last tuesday" +%F`, `date -d "yesterday" +%F`,
+   `date -d "2026-06-02" +%A` (dia da semana de uma data).
+3. **Cheque o dia da semana:** se a pessoa nomeou um dia ("terça"), a data resolvida TEM que
+   cair nesse dia (`date -d <data> +%A`). Se não bater, está errada — recalcule.
+4. **SEMPRE confirme a data + o dia da semana ANTES de ler/lançar:** *"Terça passada =
+   02/06/2026 (terça-feira), certo?"* — e só siga após o "sim". Vale pro dia único E pra cada
+   ponta de um período.
 
 ## Conexão (1ª vez ou chave trocada)
 
@@ -92,6 +109,9 @@ período (vários dias)?"**. Um passo de cada vez.
 
 ## A) Um dia
 
+0. **Resolva e CONFIRME a data** (ver seção "Datas"): obtenha a data alvo pelo `date` do
+   terminal, cheque o dia da semana e confirme com a pessoa (*"é o dia X, certo?"*) ANTES de
+   qualquer comando. Nunca calcule a data de cabeça.
 1. **Agenda (se configurada).** Rode `... agenda --date AAAA-MM-DD`. Se `ics` for `true`,
    use os `eventos` (title/start/end) como ponto de partida: para cada um, escolha o destino
    pela precedência (aprendida → padrão → perguntar) e valide com `resolve --project`. Se
@@ -121,6 +141,8 @@ período (vários dias)?"**. Um passo de cada vez.
 
 ## B) Um período (vários dias)
 
+0. **Resolva e CONFIRME o intervalo** (ver seção "Datas"): calcule início e fim pelo `date` do
+   terminal, cheque os dias da semana e confirme com a pessoa ANTES de tudo. Nunca de cabeça.
 1. **Dias úteis:** `... business-days --start AAAA-MM-DD --end AAAA-MM-DD` → apresente `days`.
 2. **Podar exceções** (feriados/férias) conversando.
 3. **Anti-duplicata:** `... entries --start --end`; avise dias que já têm lançamento.
@@ -159,5 +181,6 @@ veja `reason`/`missing_at`), **fui eu que errei ao montar os dados**, não a pes
 em silêncio (datas no formato AAAA-MM-DD, horas HH:MM, cada item com `date/start/end/task`) e
 refaço — **sem** mostrar o erro técnico nem culpar a pessoa.
 
-**Regras de ouro:** nunca grave sem conferir (dry-run antes); nunca apague sem confirmar;
+**Regras de ouro:** resolva datas pelo `date` do sistema e **confirme o dia da semana**
+(nunca de cabeça); nunca grave sem conferir (dry-run antes); nunca apague sem confirmar;
 nunca mostre JSON/IDs/jargão; fale na língua da pessoa; ao resolver, sempre passe `--project`.
