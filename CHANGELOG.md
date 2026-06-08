@@ -11,13 +11,19 @@ skill conversacional + CLI Python zero-dependência (stdlib) lendo `.clockify/` 
 projeto aberta no Cowork.
 
 ### Funcionalidades
-- **`/clockify`** — conexão/onboarding (cola a API key uma vez; agenda do Outlook opcional) e,
-  ao final, um **manual rápido de boas-vindas** com exemplos práticos.
+- **`/clockify`** — **único ponto de setup**: cola a API key e conecta a **agenda do Outlook
+  (obrigatória)**; ao final, um **manual rápido de boas-vindas** com exemplos práticos.
 - **`/clockify-tracking`** — lança horas (hoje / um dia / um período), puxando reuniões da
-  agenda do Outlook quando conectada, com anti-duplicata por bloco e preferências aprendidas.
+  agenda do Outlook, com anti-duplicata por bloco e preferências aprendidas.
 - **`/clockify-report`** — relatório **diário** (um mês, dia a dia) e **mensal** (intervalo
-  ≤ 12 meses), agora com **resumo** (média + dia/mês mais cheio), **horas por projeto** e, no
+  ≤ 12 meses), com **resumo** (média + dia/mês mais cheio), **horas por projeto** e, no
   diário, **lacunas** (dias úteis sem registro).
+
+### Guard de pasta configurada
+- `setup-status` (CLI, local, sem rede): `tracking` e `report` só rodam numa pasta totalmente
+  configurada pelo `/clockify`. Sem config → orienta a rodar `/clockify` ali ou abrir, no
+  Cowork, a pasta correta. Agenda do Outlook passou a ser **obrigatória** ("configurado" =
+  chave + ICS).
 
 ### Consolidação
 - Renomeado de `clockify-cowork` → **`clockify-plugin`** (diretório, manifestos e docs).

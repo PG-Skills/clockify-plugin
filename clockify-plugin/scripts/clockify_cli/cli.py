@@ -72,6 +72,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub = p.add_subparsers(dest="cmd")
 
     sub.add_parser("whoami")
+    sub.add_parser("setup-status")
 
     bd = sub.add_parser("business-days")
     bd.add_argument("--start", required=True)
@@ -129,6 +130,13 @@ def main(argv=None, *, stdout=None) -> int:
         return EXIT_OK
 
     try:
+        if args.cmd == "setup-status":
+            # Guard LOCAL (sem rede): a pasta atual está totalmente configurada?
+            status = pure.setup_status(config.load_credentials())
+            status["dir"] = str(config.base_dir())
+            _emit(status, stdout)
+            return EXIT_OK
+
         if args.cmd == "whoami":
             creds = _load_key(stdout)
             if creds is None:

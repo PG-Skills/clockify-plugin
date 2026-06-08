@@ -15,8 +15,16 @@ com ferramentas de arquivo + rodar com `python3 -B .clockify/bin/clockify_cli`).
 ## Pré-requisitos
 1. **Projeto (pasta local):** rode `pwd`; se for temporário (`/sessions/...` sem `/mnt/`) ou
    `CLAUDE_PROJECT_DIR` vazio, peça pra pessoa abrir um projeto (igual ao tracking) e pare.
-2. **Conexão:** o report usa a chave já conectada. Se um comando voltar `{"error":"NO_KEY"}`,
-   diga que precisa conectar primeiro (rode `/clockify` ou `/clockify-tracking`) e pare.
+2. **Configuração desta pasta (guard).** O report é **só leitura** — nunca faça setup aqui.
+   Como primeira ação, rode `... setup-status` (local, sem rede) e leia:
+   - `configured: true` → siga.
+   - `has_key: false` → **pare**: *"Não encontrei sua configuração do Clockify nesta pasta. Rode
+     **/clockify** pra configurar aqui — ou, se você já configurou em outra pasta, abra essa pasta
+     no Cowork (no botão 'Trabalhar em um projeto')."*
+   - `has_key: true` e `has_ics: false` → **pare**: *"Sua configuração está incompleta: falta
+     conectar a agenda do Outlook (agora obrigatória). Rode **/clockify** pra concluir."*
+   Se algum comando voltar `{"error":"INVALID_KEY"}`, a chave parou de valer → mande rodar
+   **/clockify**.
 
 ## Datas — pelo sistema, nunca de cabeça
 Você erra calendário. Pegue o "hoje" real (`date +"%Y-%m"`) e resolva meses pelo `date` do

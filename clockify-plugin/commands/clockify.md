@@ -13,22 +13,40 @@ terminal (sandbox não enxerga o plugin), use a cópia local **atualizada** como
 `clockify-tracking`, seção "Como rodar o CLI" (sempre `rm -rf .clockify/bin/clockify_cli` +
 recopiar do plugin + `python3 -B`) — nunca reuse cópia velha.
 
-**Passo 2 — conexão.** Com projeto confirmado, rode
-`python3 ${CLAUDE_PLUGIN_ROOT}/scripts/clockify_cli whoami`.
-- `{"error":"NO_KEY"}` → use a skill **clockify-tracking** para conectar (peça a chave —
-  disponível em https://app.clockify.me/manage-api-keys, Perfil → Preferências → Avançado →
-  "Gerenciar chaves de API" — e grave `.clockify/credentials.json`).
-- `{"error":"INVALID_KEY"}` → avise, em linguagem leiga, que a chave não funcionou.
-- `{"error":"HTTP_ERROR",...}` → diga que o Clockify não respondeu agora; ofereça tentar de novo.
-- Sucesso → confirme a conta conectada (use o `name`). Em seguida rode
-  `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/clockify_cli prefs get` e conte, em linguagem
-  natural, se há atividade padrão e quantas atividades aprendidas existem. Depois rode
-  `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/clockify_cli agenda --date <hoje>`: se `ics` for
-  `true`, diga "agenda do Outlook conectada". Se `false`, **não apenas mencione — ofereça
-  conectar**: *"Sua agenda do Outlook não está conectada. Quer conectar pra eu já trazer suas
-  reuniões do dia automaticamente? É opcional."* Se a pessoa topar, conduza pelo passo de
-  Agenda da skill **clockify-tracking** (link do Outlook em **Publicar calendário**, NÃO
-  Compartilhar). **Nunca mostre JSON/IDs nem despeje os eventos.**
+**Passo 2 — Setup (só o `/clockify` faz isso).** O setup é **chave do Clockify + agenda do
+Outlook (obrigatória)**. `/clockify-tracking` e `/clockify-report` só rodam depois disso. Comece
+com `... setup-status` (local, sem rede):
+- `configured: true` → já está pronto: confirme a conta (rode `... whoami`, use o `name`) e vá
+  pro Passo 3. (Só refaça abaixo se a pessoa pediu pra trocar a chave ou reconectar a agenda.)
+- Senão, faça **2a** e/ou **2b** conforme o que falta.
+
+**2a — Chave do Clockify** (se `has_key: false`, ou a pessoa quer trocar a chave):
+1. Peça, leigo: *"Cola aqui sua chave do Clockify — você pega em
+   https://app.clockify.me/manage-api-keys (Perfil → Preferências → Avançado → 'Gerenciar
+   chaves de API')."*
+2. **Proteja a credencial ANTES de gravar:** olhe o `.gitignore` da raiz do projeto (ferramenta
+   de arquivo); se existir e não tiver `.clockify/`, acrescente; se não existir, crie um com
+   `.clockify/`.
+3. **Grave** `.clockify/credentials.json` com
+   `{"api_key":"<a chave>","ics_url":null,"workspace_id":null,"user_id":null}` (Write).
+4. Rode `... whoami`. `{"error":"INVALID_KEY"}` → *"Essa chave não funcionou, confere e tenta de
+   novo."* (repita). `{"error":"HTTP_ERROR",...}` → diga que o Clockify não respondeu agora e
+   ofereça tentar de novo (não trate como chave inválida). Sucesso (`{"name":...}`) → cumprimente
+   com o nome; `workspace_id`/`user_id` ficam em cache.
+
+**2b — Agenda do Outlook (OBRIGATÓRIA)** (se `has_ics: false`): conecte agora — **não é
+opcional, não ofereça pular**. Guie:
+*"Agora vou conectar sua agenda do Outlook — é necessário pra eu trazer suas reuniões
+automaticamente na hora de lançar. Abra
+https://outlook.cloud.microsoft/mail/options/calendar/SharedCalendars e use **Publicar
+calendário** (NÃO 'Compartilhar' — só o Publicar gera o link). Copie o link que termina em
+**.ics** e cole aqui."*
+Quando colar: **reescreva** `.clockify/credentials.json` mantendo todos os campos existentes
+(`api_key`, `workspace_id`, `user_id`) e preenchendo `"ics_url"` (ferramenta de arquivo). Valide
+com `... agenda --date <hoje>`: se vier `{"error":"ICS_ERROR",...}` ou `{"ics": false}`, explique
+simples que o link não funcionou (confirme *Publicar* e o `.ics`) e **peça de novo** — repita até
+validar. **Não vá pro Passo 3 sem ICS válido.** **Nunca mostre JSON/IDs nem despeje eventos.**
+(Opcional: rode `... prefs get` e conte, leigo, se há atividade padrão e quantas aprendidas.)
 
 **Passo 3 — Manual rápido (boas-vindas).** Sempre que o Passo 2 terminar com a conexão OK
 (depois de tratar a agenda), **apresente um mini-manual** ensinando a pessoa leiga a usar o

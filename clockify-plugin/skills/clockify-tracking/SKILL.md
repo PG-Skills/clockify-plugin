@@ -63,56 +63,24 @@ Você (modelo) **erra conta de calendário** — então **nunca** deduza data me
    02/06/2026 (terça-feira), certo?"* — e só siga após o "sim". Vale pro dia único E pra cada
    ponta de um período.
 
-## Conexão (1ª vez ou chave trocada)
+## Antes de lançar — esta pasta precisa estar configurada (guard)
 
-1. Rode `... whoami`.
-2. Se vier `{"error":"NO_KEY"}`: peça a chave em linguagem leiga — *"Pra começar, cola
-   aqui sua chave do Clockify (pego em https://app.clockify.me/manage-api-keys —
-   Perfil → Preferências → Avançado → "Gerenciar chaves de API")."* Quando a pessoa colar:
-   a. **Proteja a credencial ANTES de gravá-la.** Olhe o `.gitignore` da raiz do projeto
-      (ferramenta de arquivo): se existir e NÃO contiver uma linha `.clockify/`, acrescente
-      `.clockify/`; se não existir `.gitignore`, crie um contendo `.clockify/`. (Isso evita
-      que a chave de texto puro seja commitada no repo da PESSOA — é a proteção que importa.)
-   b. **Grave** `.clockify/credentials.json` com
-      `{"api_key":"<a chave>","ics_url":null,"workspace_id":null,"user_id":null}` (Write).
-   c. Rode `... whoami` de novo.
-3. Se vier `{"error":"INVALID_KEY"}`: *"Essa chave não funcionou, confere e tenta de novo."*
-4. Se vier `{"error":"HTTP_ERROR",...}` (ou o comando falhar por rede): diga, leigo, que o
-   Clockify não respondeu agora e ofereça tentar de novo em instantes. **Não** trate como
-   chave inválida nem peça a chave de novo.
-5. Sucesso (`{"name":...}`): cumprimente com o nome da conta. `workspace_id` e `user_id`
-   já ficam em cache (o caminho de lançamento não chama a rede de novo à toa).
-6. **Agenda do Outlook — SEMPRE PERGUNTE (não só mencione).** Muita gente não sabe que
-   existe essa opção, então **faça a pergunta de verdade**, com o benefício claro e resposta
-   sim/não — **nunca** a trate como mero item de status. Diga algo como: *"Posso me conectar à
-   sua agenda do Outlook? Assim eu já trago as reuniões do seu dia automaticamente e você não
-   precisa ditar uma por uma. É opcional — quer conectar agora ou prefere pular?"* e **espere
-   a resposta**.
-   - Se **pular/não**: siga normal (a pessoa dita as atividades) e avise que dá pra conectar
-     depois quando quiser.
-   - Se **sim**: oriente: *"Abra https://outlook.cloud.microsoft/mail/options/calendar/SharedCalendars
-     e use **Publicar calendário** (NÃO 'Compartilhar' — são diferentes; só o Publicar gera o
-     link). Copie o link que termina em **.ics** e cole aqui."* Quando colar, **reescreva**
-     `.clockify/credentials.json` mantendo **todos** os campos já existentes (`api_key`,
-     `workspace_id`, `user_id`) e só preenchendo `"ics_url"` com o link (ferramenta de arquivo). Valide rodando `... agenda --date <hoje>`: se vier
-     `{"error":"ICS_ERROR",...}`, diga em linguagem simples que o link não funcionou (confirme
-     que usou *Publicar* e que é o `.ics`) e ofereça tentar de novo ou pular.
+O **setup (chave + agenda do Outlook) é feito SÓ pelo `/clockify`**. Aqui você apenas LANÇA —
+**nunca peça a chave nem configure nada**. Como PRIMEIRA ação (depois de confirmar o projeto),
+rode `... setup-status` (local, sem rede) e leia:
 
-**Manual rápido (só na 1ª conexão).** Se a pessoa acabou de conectar AGORA (colou a chave
-nesta conversa), apresente o mini-manual de boas-vindas: leia
-`${CLAUDE_PLUGIN_ROOT}/skills/clockify-tracking/references/manual-rapido.md` (ferramenta de
-arquivo) e apresente-o **na língua da pessoa**, seguindo as regras de lá. É um onboarding de
-~20 segundos; se ela já estava conectada (não colou chave agora), pule e siga normal.
+- `configured: true` → siga para o Passo 0.
+- `has_key: false` → **pare** e diga, leigo: *"Não encontrei sua configuração do Clockify nesta
+  pasta. Rode **/clockify** pra configurar aqui — ou, se você já configurou em outra pasta, abra
+  essa pasta no Cowork (no botão 'Trabalhar em um projeto')."*
+- `has_key: true` e `has_ics: false` → **pare** e diga: *"Sua configuração está incompleta:
+  falta conectar sua agenda do Outlook (agora obrigatória). Rode **/clockify** pra concluir."*
+
+Se, durante o uso, algum comando voltar `{"error":"INVALID_KEY"}`, a chave salva parou de valer:
+diga, leigo, que precisa reconectar e mande rodar **/clockify** (não peça a chave aqui).
 
 Leia as preferências UMA vez: `... prefs get` → guarde `default` (pode ser `{}`) e a lista
 `learned` (cada item tem `match` e `project`, às vezes `task`/`tag`/`billable`).
-
-**Agenda ainda não conectada? Ofereça UMA vez (cobre quem já está conectado e entra direto
-aqui).** Se a credencial não tem `ics_url` (ou `... agenda --date <hoje>` volta `{"ics": false}`),
-**faça a pergunta** do passo 6 da Conexão — *"Posso me conectar à sua agenda do Outlook? Aí eu
-já trago suas reuniões automaticamente e você não precisa ditar uma por uma. Quer conectar ou
-prefere pular?"*. Se **sim**, conduza pelo passo 6 (link em **Publicar calendário**, NÃO
-Compartilhar; grava `ics_url`). Se **pular**, siga normal e não insista de novo nesta conversa.
 
 ## Passo 0 — Um dia ou um período?
 

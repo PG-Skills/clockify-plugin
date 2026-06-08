@@ -337,3 +337,44 @@ def test_report_malformed_month(monkeypatch, tmp_path):
     _seed_creds(monkeypatch, tmp_path)
     code, out = _run(["report", "--month", "2026/06"])
     assert code == 2 and out["error"] == "INVALID_INPUT"
+
+
+def test_setup_status_configured(monkeypatch, tmp_path):
+    monkeypatch.setenv("CLOCKIFY_DIR", str(tmp_path))
+    config.save_credentials(
+        api_key="K", ics_url="https://x/y.ics", workspace_id="w", user_id="u"
+    )
+
+    def boom(*a, **k):  # setup-status é LOCAL: não pode tocar a rede
+        raise AssertionError("setup-status não deve chamar a rede")
+
+    monkeypatch.setattr(clockify, "get_user", boom)
+    code, out = _run(["setup-status"])
+    assert code == 0
+    assert out == {
+        "has_key": True,
+        "has_ics": True,
+        "configured": True,
+        "dir": str(tmp_path),
+    }
+
+
+def test_setup_status_no_key(monkeypatch, tmp_path):
+    monkeypatch.setenv("CLOCKIFY_DIR", str(tmp_path))
+    code, out = _run(["setup-status"])
+    assert code == 0
+    assert out == {
+        "has_key": False,
+        "has_ics": False,
+        "configured": False,
+        "dir": str(tmp_path),
+    }
+
+
+def test_setup_status_key_without_ics_incomplete(monkeypatch, tmp_path):
+    monkeypatch.setenv("CLOCKIFY_DIR", str(tmp_path))
+    config.save_credentials(api_key="K", ics_url=None, workspace_id="w", user_id="u")
+    code, out = _run(["setup-status"])
+    assert code == 0
+    assert out["has_key"] is True and out["has_ics"] is False
+    assert out["configured"] is False and out["dir"] == str(tmp_path)

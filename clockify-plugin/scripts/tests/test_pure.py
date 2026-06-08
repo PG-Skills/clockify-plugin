@@ -212,3 +212,40 @@ def test_summary_months_empty():
         "avg_hours": 0.0,
         "max_month": None,
     }
+
+
+# ---- setup_status: guard de pasta configurada (ICS obrigatório) ----
+
+
+def test_setup_status_full():
+    creds = {"api_key": "K", "ics_url": "https://x/y.ics", "workspace_id": "w"}
+    assert pure.setup_status(creds) == {
+        "has_key": True,
+        "has_ics": True,
+        "configured": True,
+    }
+
+
+def test_setup_status_none():
+    assert pure.setup_status(None) == {
+        "has_key": False,
+        "has_ics": False,
+        "configured": False,
+    }
+
+
+def test_setup_status_key_but_no_ics_is_incomplete():
+    creds = {"api_key": "K", "ics_url": None}
+    assert pure.setup_status(creds) == {
+        "has_key": True,
+        "has_ics": False,
+        "configured": False,
+    }
+
+
+def test_setup_status_empty_strings_count_as_absent():
+    assert pure.setup_status({"api_key": "", "ics_url": ""}) == {
+        "has_key": False,
+        "has_ics": False,
+        "configured": False,
+    }

@@ -197,3 +197,14 @@ def summary_months(months: list[dict]) -> dict:
         "avg_hours": round(total / len(months), 2),
         "max_month": {"month": mx["month"], "hours": mx["hours"]},
     }
+
+
+def setup_status(creds: dict | None) -> dict:
+    """Status LOCAL da configuração (sem rede), a partir do `credentials.json` já lido.
+
+    `has_key` = tem api_key; `has_ics` = tem ics_url (agenda do Outlook). `configured`
+    exige os DOIS — o ICS do Outlook é obrigatório. Usado como guard de `clockify-tracking`
+    e `clockify-report`: só rodam numa pasta totalmente configurada pelo `/clockify`."""
+    has_key = bool(creds and creds.get("api_key"))
+    has_ics = bool(creds and creds.get("ics_url"))
+    return {"has_key": has_key, "has_ics": has_ics, "configured": has_key and has_ics}

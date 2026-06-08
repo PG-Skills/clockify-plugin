@@ -32,15 +32,19 @@ Na primeira sessão, use `/clockify` para conectar:
 /clockify
 ```
 
-O plugin pergunta sua API key do Clockify, valida e salva em `.clockify/credentials.json`
-(pasta do projeto, nunca versionado). Pronto — um passo único. Ao final, o `/clockify` mostra
-um **manual rápido de boas-vindas** com exemplos práticos (lançar hoje, ver lacunas, relatório).
+O `/clockify` faz **todo o setup**: pede sua API key do Clockify e conecta sua **agenda do
+Outlook (obrigatória)** — tudo salvo em `.clockify/credentials.json` na pasta do projeto (nunca
+versionado). Ao final, mostra um **manual rápido de boas-vindas** com exemplos práticos.
+
+> `/clockify-tracking` e `/clockify-report` só funcionam **na pasta já configurada pelo
+> `/clockify`**. Se você abrir outra pasta, eles avisam para rodar `/clockify` ali — ou abrir,
+> no Cowork, a pasta onde você já configurou.
 
 ## Usar no dia a dia
 
 | Comando | O que faz |
 |---|---|
-| `/clockify` | Verifica a conexão / reconfigura credenciais (e oferece conectar a agenda do Outlook). Mostra um **manual rápido** após conectar. |
+| `/clockify` | **Setup completo** (único ponto): API key + **agenda do Outlook (obrigatória)**. Mostra um **manual rápido** ao concluir. |
 | `/clockify-tracking` | Lança no Clockify — você escolhe na conversa **hoje**, um **dia** ou um **período**. |
 | `/clockify-report` | **Relatório** das horas — **diário** (um mês, dia a dia) ou **mensal** (intervalo de meses, máx 12). Inclui **resumo** (média + dia/mês mais cheio), **horas por projeto** e, no diário, **lacunas** (dias úteis sem registro). |
 
