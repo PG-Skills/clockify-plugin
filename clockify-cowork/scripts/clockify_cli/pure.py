@@ -56,3 +56,67 @@ def business_days(start: date, end: date) -> list[date]:
             dias.append(atual)
         atual += timedelta(days=1)
     return dias
+
+
+def month_window_utc(year: int, month: int, tz: ZoneInfo) -> tuple[str, str]:
+    """Janela `(start, end)` ISO UTC cobrindo o mês LOCAL (year, month): 00:00 do dia 1
+    até 00:00 do dia 1 do mês seguinte, em UTC."""
+    first = datetime(year, month, 1, tzinfo=tz)
+    nxt = (
+        datetime(year + 1, 1, 1, tzinfo=tz)
+        if month == 12
+        else datetime(year, month + 1, 1, tzinfo=tz)
+    )
+    return (
+        first.astimezone(timezone.utc).strftime(_UTC_FMT),
+        nxt.astimezone(timezone.utc).strftime(_UTC_FMT),
+    )
+
+
+def _entry_seconds(entry: dict) -> float:
+    """Duração (segundos) de um time-entry cru; 0 se faltar start/end (entry em aberto)."""
+    ti = entry.get("timeInterval") or {}
+    start, end = ti.get("start"), ti.get("end")
+    if not start or not end:
+        return 0.0
+    s = datetime.fromisoformat(start.replace("Z", "+00:00"))
+    e = datetime.fromisoformat(end.replace("Z", "+00:00"))
+    return max(0.0, (e - s).total_seconds())
+
+
+def _entry_local_dt(entry: dict, tz: ZoneInfo) -> datetime | None:
+    """Início do entry em hora LOCAL (para agrupar por dia/mês local)."""
+    start = (entry.get("timeInterval") or {}).get("start")
+    if not start:
+        return None
+    return datetime.fromisoformat(start.replace("Z", "+00:00")).astimezone(tz)
+
+
+def total_hours(entries: list[dict]) -> float:
+    """Total de horas (2 casas) somando as durações brutas (evita drift de arredondamento)."""
+    return round(sum(_entry_seconds(e) for e in entries) / 3600, 2)
+
+
+def hours_by_day(entries: list[dict], tz: ZoneInfo) -> list[dict]:
+    """`[{date, hours}]` por dia LOCAL (só dias com horas > 0), ordenado por data."""
+    acc: dict[str, float] = {}
+    for e in entries:
+        dt = _entry_local_dt(e, tz)
+        secs = _entry_seconds(e)
+        if dt is None or secs <= 0:
+            continue
+        acc[dt.date().isoformat()] = acc.get(dt.date().isoformat(), 0.0) + secs
+    return [{"date": k, "hours": round(v / 3600, 2)} for k, v in sorted(acc.items())]
+
+
+def hours_by_month(entries: list[dict], tz: ZoneInfo) -> list[dict]:
+    """`[{month "YYYY-MM", hours}]` por mês LOCAL (só meses com horas > 0), ordenado."""
+    acc: dict[str, float] = {}
+    for e in entries:
+        dt = _entry_local_dt(e, tz)
+        secs = _entry_seconds(e)
+        if dt is None or secs <= 0:
+            continue
+        key = f"{dt.year:04d}-{dt.month:02d}"
+        acc[key] = acc.get(key, 0.0) + secs
+    return [{"month": k, "hours": round(v / 3600, 2)} for k, v in sorted(acc.items())]
