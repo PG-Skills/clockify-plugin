@@ -65,8 +65,8 @@ terminal não vê o plugin, `cp` também não veria.)
    - Se **sim**: oriente: *"Abra https://outlook.cloud.microsoft/mail/options/calendar/SharedCalendars
      e use **Publicar calendário** (NÃO 'Compartilhar' — são diferentes; só o Publicar gera o
      link). Copie o link que termina em **.ics** e cole aqui."* Quando colar, **reescreva**
-     `.clockify/credentials.json` mantendo a chave e preenchendo `"ics_url"` com o link
-     (ferramenta de arquivo). Valide rodando `... agenda --date <hoje>`: se vier
+     `.clockify/credentials.json` mantendo **todos** os campos já existentes (`api_key`,
+     `workspace_id`, `user_id`) e só preenchendo `"ics_url"` com o link (ferramenta de arquivo). Valide rodando `... agenda --date <hoje>`: se vier
      `{"error":"ICS_ERROR",...}`, diga em linguagem simples que o link não funcionou (confirme
      que usou *Publicar* e que é o `.ics`) e ofereça tentar de novo ou pular.
 
