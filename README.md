@@ -12,6 +12,7 @@ Ferramenta interna da **PG**, desenvolvida pelo time **AI Product Innovation**.
 - Mostra um resumo em **simulação** primeiro — só grava depois da sua confirmação.
 - **Aprende** suas atividades recorrentes (ex.: "daily do projeto X" → projeto/tarefa certos).
 - Lança **um dia** ou **um período** de uma vez (ótimo para fechar o mês retroativo).
+- Mostra **relatórios** das suas horas — **diário** (dia a dia de um mês) ou **mensal** (vários meses).
 
 ## Pré-requisito
 
@@ -38,10 +39,9 @@ O plugin pergunta sua API key do Clockify, valida e salva em `.clockify/credenti
 
 | Comando | O que faz |
 |---|---|
-| `/clockify` | Verifica conexão / reconfigura credenciais. |
-| `/clockify-tracking` | Lança **hoje** (ou um período) no Clockify. |
-| `/clockify-tracking 2026-01-28` | Lança um **dia específico**. |
-| `/clockify-tracking 2026-05-01 2026-05-31` | Lança um **intervalo de datas**. |
+| `/clockify` | Verifica a conexão / reconfigura credenciais (e oferece conectar a agenda do Outlook). |
+| `/clockify-tracking` | Lança no Clockify — você escolhe na conversa **hoje**, um **dia** ou um **período**. |
+| `/clockify-report` | **Relatório** das horas — **diário** (um mês, dia a dia) ou **mensal** (intervalo de meses, máx 12). |
 
 Em qualquer fluxo, o Claude mostra um resumo do que vai lançar e espera sua confirmação
 antes de gravar. Lançamento duplicado é evitado automaticamente.
@@ -71,7 +71,7 @@ o "IO confiável" é uma CLI Python zero-dependência (`clockify-cowork/scripts/
 
 ```bash
 cd clockify-cowork/scripts
-python3 -m pytest -q        # 45 testes, stdlib only, sem uv
+python3 -m pytest -q        # 90 testes, stdlib only, sem uv
 ```
 
 Política de versão e processo de release: ver **`MAINTAINER.md`**.

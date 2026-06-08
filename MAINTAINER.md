@@ -4,19 +4,20 @@ Este repo é, ao mesmo tempo, o **plugin** `clockify-cowork` e o **marketplace**
 
 ## Cortar um release
 
-> **Política de versão (pré-lançamento):** enquanto o plugin **não** for lançado para os
-> colegas, tudo permanece em **`1.0.0`** — não faça bump a cada mudança. O versionamento em
-> lockstep abaixo vale a partir do **primeiro lançamento de verdade**.
+> **Política de versão (pré-lançamento, atual):** o `plugin.json` e a entrada no
+> `marketplace.json` estão **sem o campo `version`** — de propósito. Sem `version`, o Claude
+> trackeia atualização pelo **commit SHA**, então **todo push** no branch é detectado pelo botão
+> **"Atualizar"** (`/plugin update`). É o que queremos durante a iteração: cada correção chega
+> sem bumpar nada. **Quando lançar pra valer**, aí sim fixe uma `version` (semver) nos dois
+> pontos (`clockify-cowork/.claude-plugin/plugin.json` e a entrada em
+> `.claude-plugin/marketplace.json`) e bumpe em **lockstep** a cada release.
 
 1. Faça as mudanças e rode os testes: `cd clockify-cowork/scripts && python3 -m pytest -q`.
-2. Bump da versão em **lockstep** nos dois pontos (semver, mesma versão em ambos):
-   `.claude-plugin/marketplace.json` (entrada do plugin) e
-   `clockify-cowork/.claude-plugin/plugin.json`.
-3. `git commit` + `git push` para o branch principal.
+2. `git commit` + `git push` para o branch principal.
    > **Push via 2.ª conta:** use o `.envrc` na raiz do repo (que exporta `GH_TOKEN` e configura
    > o remote com o token da conta de publicação). Não remover nem editar o `.envrc`.
-4. Avise a equipe. Cada pessoa atualiza com `/plugin marketplace update` seguido de
-   `/plugin update clockify-cowork@pg-clockify`.
+3. Cada pessoa pega a atualização pelo botão **"Atualizar"** (ou `/plugin update
+   clockify-cowork@pg-clockify`). Como não há `version` fixa, o update vem por commit.
 
 ## Como um colega instala (primeira vez)
 

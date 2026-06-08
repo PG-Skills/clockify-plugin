@@ -19,14 +19,16 @@ Roda no Claude desktop app ("Cowork") sobre uma pasta de projeto local.
 - `clockify-cowork/skills/clockify-tracking/SKILL.md` — skill principal, orquestra a conversa.
 - `clockify-cowork/commands/clockify-tracking.md` — comando `/clockify-tracking` (lançar um dia ou período).
 - `clockify-cowork/commands/clockify.md` — comando `/clockify` (status / verificar conexão).
+- `clockify-cowork/skills/clockify-report/SKILL.md` + `commands/clockify-report.md` — `/clockify-report` (relatório diário/mensal, read-only).
 - `clockify-cowork/scripts/clockify_cli/` — CLI zero-dep (Python stdlib):
-  - `cli.py` — subcomandos `whoami`, `entries` (`--date` ou `--start/--end`), `business-days`, `resolve`, `add` (`--dry-run`), `prefs` (`get`/`set-default`/`learn`/`forget`/`reset`).
+  - `cli.py` — subcomandos `whoami`, `entries` (`--date` | `--start/--end`), `business-days`, `resolve`, `add` (`--dry-run`), `agenda` (`--date`, lê ICS), `report` (`--month` diário | `--start/--end` mensal ≤12), `prefs` (`get`/`set-default`/`learn`/`forget`/`reset`).
   - `clockify.py` — client HTTP para a API Clockify (`https://api.clockify.me/api/v1`).
   - `http_json.py` — HTTP mínimo via `urllib` (sem requests).
+  - `ics.py` — leitor de agenda Outlook (ICS) zero-dep: fetch anti-SSRF + parser + recorrência (DAILY/WEEKLY/MONTHLY).
   - `config.py` — lê/escreve `.clockify/credentials.json` no projeto (api_key + workspace_id/user_id em cache + ics_url).
   - `prefs.py` — preferências por projeto em `.clockify/prefs.json` (default projeto/tarefa/tag/billable + learned).
-  - `pure.py` — lógica pura: janelas UTC, dias úteis, resolução de payload.
-  - `resolve.py` — resolve nomes de projeto/tarefa/tag → IDs; `add_entries` com anti-duplicata.
+  - `pure.py` — lógica pura: janelas UTC (dia/intervalo/mês), dias úteis, agregação de horas por dia/mês (report), payload/UTC.
+  - `resolve.py` — resolve nomes de projeto/tarefa/tag → IDs; `add_entries` com anti-duplicata por (tarefa, início).
 
 ## Convenções específicas (gotchas)
 
@@ -37,7 +39,7 @@ Roda no Claude desktop app ("Cowork") sobre uma pasta de projeto local.
   - `.clockify/` deve estar no `.gitignore` do projeto do usuário — nunca versionado.
 - **Onboarding**: o usuário cola a API key uma vez no chat; a skill escreve `credentials.json`. Sem passos manuais.
 - **Horários em UTC**: conversão de hora local (America/Sao_Paulo) em `pure.py`.
-- **Anti-duplicata**: `entries` verifica o que já existe antes de `add`.
+- **Anti-duplicata**: chave `(tarefa, início)` — vários blocos da mesma tarefa no dia entram; só re-run idêntico (mesma tarefa e mesmo início) é pulado.
 - **`add` é resiliente a falha parcial**: para no 1.º erro, reporta "gravou N de M", sai ≠ 0.
 - **Sempre dry-run antes de gravar.**
 - **Testes**: 100% stdlib, sem `uv`, sem dependências externas. `python3 -m pytest -q` direto em `clockify-cowork/scripts/`.
