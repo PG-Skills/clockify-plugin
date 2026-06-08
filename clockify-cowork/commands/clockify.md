@@ -10,11 +10,14 @@ verificação da skill `clockify-tracking`.)
 
 **Passo 2 — conexão.** Com projeto confirmado, rode
 `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/clockify_cli whoami`.
-- `{"error":"NO_KEY"}` → use a skill **clockify-tracking** para conectar (peça a chave e
-  grave `.clockify/credentials.json`).
+- `{"error":"NO_KEY"}` → use a skill **clockify-tracking** para conectar (peça a chave —
+  disponível em https://app.clockify.me/manage-api-keys, Perfil → Preferências → Avançado →
+  "Gerenciar chaves de API" — e grave `.clockify/credentials.json`).
 - `{"error":"INVALID_KEY"}` → avise, em linguagem leiga, que a chave não funcionou.
 - `{"error":"HTTP_ERROR",...}` → diga que o Clockify não respondeu agora; ofereça tentar de novo.
 - Sucesso → confirme a conta conectada (use o `name`). Em seguida rode
   `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/clockify_cli prefs get` e conte, em linguagem
-  natural, se há atividade padrão e quantas atividades aprendidas existem. **Nunca mostre
-  JSON/IDs.**
+  natural, se há atividade padrão e quantas atividades aprendidas existem. Depois rode
+  `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/clockify_cli agenda --date <hoje>`: se `ics` for
+  `true`, diga "agenda do Outlook conectada"; se `false`, "agenda não conectada (opcional)".
+  **Nunca mostre JSON/IDs nem despeje os eventos.**

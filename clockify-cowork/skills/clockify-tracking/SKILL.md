@@ -44,8 +44,8 @@ terminal não vê o plugin, `cp` também não veria.)
 
 1. Rode `... whoami`.
 2. Se vier `{"error":"NO_KEY"}`: peça a chave em linguagem leiga — *"Pra começar, cola
-   aqui sua chave do Clockify (pego em https://app.clockify.me/user/settings → aba
-   Advanced → Generate)."* Quando a pessoa colar:
+   aqui sua chave do Clockify (pego em https://app.clockify.me/manage-api-keys —
+   Perfil → Preferências → Avançado → "Gerenciar chaves de API")."* Quando a pessoa colar:
    a. **Proteja a credencial ANTES de gravá-la.** Olhe o `.gitignore` da raiz do projeto
       (ferramenta de arquivo): se existir e NÃO contiver uma linha `.clockify/`, acrescente
       `.clockify/`; se não existir `.gitignore`, crie um contendo `.clockify/`. (Isso evita
@@ -59,6 +59,16 @@ terminal não vê o plugin, `cp` também não veria.)
    chave inválida nem peça a chave de novo.
 5. Sucesso (`{"name":...}`): cumprimente com o nome da conta. `workspace_id` e `user_id`
    já ficam em cache (o caminho de lançamento não chama a rede de novo à toa).
+6. **Agenda do Outlook (opcional).** Pergunte UMA vez, leigo: *"Quer que eu puxe sua
+   agenda do Outlook pra sugerir os lançamentos? É opcional — pode pular."*
+   - Se **pular**: siga normal (a pessoa dita as atividades).
+   - Se **sim**: oriente: *"Abra https://outlook.cloud.microsoft/mail/options/calendar/SharedCalendars
+     e use **Publicar calendário** (NÃO 'Compartilhar' — são diferentes; só o Publicar gera o
+     link). Copie o link que termina em **.ics** e cole aqui."* Quando colar, **reescreva**
+     `.clockify/credentials.json` mantendo a chave e preenchendo `"ics_url"` com o link
+     (ferramenta de arquivo). Valide rodando `... agenda --date <hoje>`: se vier
+     `{"error":"ICS_ERROR",...}`, diga em linguagem simples que o link não funcionou (confirme
+     que usou *Publicar* e que é o `.ics`) e ofereça tentar de novo ou pular.
 
 Leia as preferências UMA vez: `... prefs get` → guarde `default` (pode ser `{}`) e a lista
 `learned` (cada item tem `match` e `project`, às vezes `task`/`tag`/`billable`).
@@ -70,18 +80,23 @@ período (vários dias)?"**. Um passo de cada vez.
 
 ## A) Um dia
 
-1. **Anti-duplicata:** `... entries --date AAAA-MM-DD`. Se `entries` não estiver vazio,
+1. **Agenda (se configurada).** Rode `... agenda --date AAAA-MM-DD`. Se `ics` for `true`,
+   use os `eventos` (title/start/end) como ponto de partida: para cada um, escolha o destino
+   pela precedência (aprendida → padrão → perguntar) e valide com `resolve --project`. Se
+   `ics` for `false` ou a lista vazia, siga ditando normalmente. Avise: *"puxei o que reconheci
+   da sua agenda; confira e ajuste."* (a recorrência é best-effort).
+2. **Anti-duplicata:** `... entries --date AAAA-MM-DD`. Se `entries` não estiver vazio,
    avise o que já existe (sem jargão) e pergunte se continua.
-2. **(Sem ICS nesta versão)** a pessoa dita as atividades com início e fim.
-3. **Reconhecer cada atividade — por PRECEDÊNCIA:** (1) **aprendida** (match igual/contém →
+3. A pessoa confirma ou dita as atividades com início e fim.
+4. **Reconhecer cada atividade — por PRECEDÊNCIA:** (1) **aprendida** (match igual/contém →
    usa o `project` dela), (2) **padrão** (propõe a `default`), (3) **perguntar** o
    cliente/projeto. **Validar com** `... resolve --name "<tarefa>" --project "<projeto>"`
    (SEMPRE com `--project`; sem ele volta "projeto necessário"). Status:
    `OK` → resolvido; `AMBIGUO` → mostre os nomes dos `candidatos` e peça para escolher;
    `NAO_ENCONTRADO` → diga simples e pergunte o nome certo.
-4. **Conferir:** mostre uma tabela limpa (atividade · cliente/projeto · duração) + total.
+5. **Conferir:** mostre uma tabela limpa (atividade · cliente/projeto · duração) + total.
    Aceite ajustes.
-5. **Gravar:** monte a lista de items `[{description, date "AAAA-MM-DD", start "HH:MM",
+6. **Gravar:** monte a lista de items `[{description, date "AAAA-MM-DD", start "HH:MM",
    end "HH:MM", task, project, tag?, billable?}]`. Rode primeiro
    `echo '<json>' | ... add --json - --dry-run` e confira; **só depois do "pode lançar"**,
    `echo '<json>' | ... add --json -`. Pela resposta: conte `gravados` de `total`; se
@@ -93,8 +108,10 @@ período (vários dias)?"**. Um passo de cada vez.
 1. **Dias úteis:** `... business-days --start AAAA-MM-DD --end AAAA-MM-DD` → apresente `days`.
 2. **Podar exceções** (feriados/férias) conversando.
 3. **Anti-duplicata:** `... entries --start --end`; avise dias que já têm lançamento.
-4. **Reconhecer atividades dia a dia** pela MESMA precedência do A.3 (a pessoa dita; valide
-   com `resolve` sempre passando `--project`). Atalho: "mesma coisa nos próximos dias".
+4. **Reconhecer atividades dia a dia** pela MESMA precedência do A.4: para cada dia, rode
+   `... agenda --date AAAA-MM-DD` (igual ao fluxo A); se `ics` for `true`, use os eventos
+   como ponto de partida; caso contrário, a pessoa dita. Valide com `resolve` sempre
+   passando `--project`. Atalho: "mesma coisa nos próximos dias".
 5. **Conferir** tabela por dia + total. Em lotes grandes, confirme totais antes.
 6. **Gravar:** um único `add --json -` com TODOS os items de TODOS os dias (dry-run primeiro).
    Reporte como no A.5.
