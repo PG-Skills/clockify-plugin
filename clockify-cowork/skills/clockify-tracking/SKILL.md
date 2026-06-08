@@ -59,9 +59,14 @@ terminal não vê o plugin, `cp` também não veria.)
    chave inválida nem peça a chave de novo.
 5. Sucesso (`{"name":...}`): cumprimente com o nome da conta. `workspace_id` e `user_id`
    já ficam em cache (o caminho de lançamento não chama a rede de novo à toa).
-6. **Agenda do Outlook (opcional).** Pergunte UMA vez, leigo: *"Quer que eu puxe sua
-   agenda do Outlook pra sugerir os lançamentos? É opcional — pode pular."*
-   - Se **pular**: siga normal (a pessoa dita as atividades).
+6. **Agenda do Outlook — SEMPRE PERGUNTE (não só mencione).** Muita gente não sabe que
+   existe essa opção, então **faça a pergunta de verdade**, com o benefício claro e resposta
+   sim/não — **nunca** a trate como mero item de status. Diga algo como: *"Posso me conectar à
+   sua agenda do Outlook? Assim eu já trago as reuniões do seu dia automaticamente e você não
+   precisa ditar uma por uma. É opcional — quer conectar agora ou prefere pular?"* e **espere
+   a resposta**.
+   - Se **pular/não**: siga normal (a pessoa dita as atividades) e avise que dá pra conectar
+     depois quando quiser.
    - Se **sim**: oriente: *"Abra https://outlook.cloud.microsoft/mail/options/calendar/SharedCalendars
      e use **Publicar calendário** (NÃO 'Compartilhar' — são diferentes; só o Publicar gera o
      link). Copie o link que termina em **.ics** e cole aqui."* Quando colar, **reescreva**

@@ -19,5 +19,8 @@ verificação da skill `clockify-tracking`.)
   `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/clockify_cli prefs get` e conte, em linguagem
   natural, se há atividade padrão e quantas atividades aprendidas existem. Depois rode
   `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/clockify_cli agenda --date <hoje>`: se `ics` for
-  `true`, diga "agenda do Outlook conectada"; se `false`, "agenda não conectada (opcional)".
-  **Nunca mostre JSON/IDs nem despeje os eventos.**
+  `true`, diga "agenda do Outlook conectada". Se `false`, **não apenas mencione — ofereça
+  conectar**: *"Sua agenda do Outlook não está conectada. Quer conectar pra eu já trazer suas
+  reuniões do dia automaticamente? É opcional."* Se a pessoa topar, conduza pelo passo de
+  Agenda da skill **clockify-tracking** (link do Outlook em **Publicar calendário**, NÃO
+  Compartilhar). **Nunca mostre JSON/IDs nem despeje os eventos.**
