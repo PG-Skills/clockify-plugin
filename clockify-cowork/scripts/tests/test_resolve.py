@@ -79,6 +79,71 @@ def test_add_entries_skips_duplicates(monkeypatch):
     assert out["gravados"] == 0 and out["pulados_duplicata"] == 1 and fake.created == []
 
 
+def test_add_entries_same_task_multiple_blocks_all_written(monkeypatch):
+    # 3 blocos da MESMA tarefa no mesmo dia (starts distintos) -> todos gravam, nada pulado
+    fake = FakeCl(
+        projects={"Proj X": [{"id": "p1", "name": "Proj X"}]},
+        tasks={("p1", "Dev"): [{"id": "t1", "name": "Dev"}]},
+    )
+    monkeypatch.setattr(resolve, "cl", fake)
+    items = [
+        {
+            "date": "2026-01-28",
+            "start": "09:00",
+            "end": "10:00",
+            "task": "Dev",
+            "project": "Proj X",
+        },
+        {
+            "date": "2026-01-28",
+            "start": "11:00",
+            "end": "12:00",
+            "task": "Dev",
+            "project": "Proj X",
+        },
+        {
+            "date": "2026-01-28",
+            "start": "13:00",
+            "end": "18:00",
+            "task": "Dev",
+            "project": "Proj X",
+        },
+    ]
+    out = resolve.add_entries("K", "ws", "u1", items)
+    assert out["gravados"] == 3 and out["pulados_duplicata"] == 0
+    assert len(fake.created) == 3
+
+
+def test_add_entries_skips_only_exact_same_start(monkeypatch):
+    # já existe um bloco às 09:00 (=12:00Z): re-logar 09:00 pula; 11:00 (mesma tarefa) grava
+    existing = [{"taskId": "t1", "timeInterval": {"start": "2026-01-28T12:00:00Z"}}]
+    fake = FakeCl(
+        projects={"Proj X": [{"id": "p1", "name": "Proj X"}]},
+        tasks={("p1", "Dev"): [{"id": "t1", "name": "Dev"}]},
+        existing=existing,
+    )
+    monkeypatch.setattr(resolve, "cl", fake)
+    items = [
+        {
+            "date": "2026-01-28",
+            "start": "09:00",
+            "end": "10:00",
+            "task": "Dev",
+            "project": "Proj X",
+        },
+        {
+            "date": "2026-01-28",
+            "start": "11:00",
+            "end": "12:00",
+            "task": "Dev",
+            "project": "Proj X",
+        },
+    ]
+    out = resolve.add_entries("K", "ws", "u1", items)
+    assert out["gravados"] == 1 and out["pulados_duplicata"] == 1
+    assert len(fake.created) == 1
+
+
 def test_local_dt_accepts_unpadded_hour():
     from zoneinfo import ZoneInfo
 

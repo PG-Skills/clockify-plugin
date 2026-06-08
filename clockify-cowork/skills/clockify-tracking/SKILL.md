@@ -109,10 +109,14 @@ período (vários dias)?"**. Um passo de cada vez.
 5. **Conferir:** mostre uma tabela limpa (atividade · cliente/projeto · duração) + total.
    Aceite ajustes.
 6. **Gravar:** monte a lista de items `[{description, date "AAAA-MM-DD", start "HH:MM",
-   end "HH:MM", task, project, tag?, billable?}]`. Rode primeiro
+   end "HH:MM", task, project, tag?, billable?}]`. **Vários blocos da MESMA tarefa no mesmo
+   dia (ex.: 09–10, 11–12, 13–18) são normais — cada um é um lançamento SEPARADO.** A
+   anti-duplicata só pula **re-run idêntico** (mesma tarefa E mesmo horário de início).
+   **NUNCA** diga que a ferramenta "junta/consolida lançamentos por tarefa ou por dia" —
+   isso não acontece; nem peça à pessoa pra escolher entre fundir blocos. Rode primeiro
    `echo '<json>' | ... add --json - --dry-run` e confira; **só depois do "pode lançar"**,
-   `echo '<json>' | ... add --json -`. Pela resposta: conte `gravados` de `total`; se
-   `pulados_duplicata` > 0, avise que itens iguais já existiam e foram pulados; se
+   `echo '<json>' | ... add --json -`. Pela resposta: conte `gravados` de `total`; **só** se
+   `pulados_duplicata` > 0, avise que itens idênticos já existiam e foram pulados; se
    `falhou_em` vier preenchido, explique simples (use `motivo`) e ofereça repetir só o resto.
 
 ## B) Um período (vários dias)

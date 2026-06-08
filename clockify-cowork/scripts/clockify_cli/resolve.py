@@ -2,7 +2,11 @@
 Porta SÍNCRONA de server/resolve.py — mesma lógica, sem async. `cl` aponta para o
 módulo clockify (substituível nos testes)."""
 
-from datetime import date, datetime
+from datetime import (
+    date,
+    datetime,
+    timezone,
+)  # timezone usado no anti-duplicata por instante
 from zoneinfo import ZoneInfo
 
 import clockify as cl
@@ -85,12 +89,12 @@ def _local_dt(d: str, hhmm: str) -> datetime:
     return datetime(y, mo, da, hh, mm, tzinfo=_TZ)
 
 
-def _entry_local_date(entry: dict) -> str | None:
+def _entry_start_instant(entry: dict) -> datetime | None:
+    """Instante de início (UTC aware) de um entry cru do Clockify, p/ casar duplicata exata."""
     start = (entry.get("timeInterval") or {}).get("start")
     if not start:
         return None
-    dt = datetime.fromisoformat(start.replace("Z", "+00:00"))
-    return dt.astimezone(_TZ).date().isoformat()
+    return datetime.fromisoformat(start.replace("Z", "+00:00")).astimezone(timezone.utc)
 
 
 def add_entries(api_key, workspace_id, user_id, items: list[dict]) -> dict:
@@ -107,12 +111,14 @@ def add_entries(api_key, workspace_id, user_id, items: list[dict]) -> dict:
     datas = [date.fromisoformat(it["date"]) for it in items]
     win_start, win_end = range_window_utc(min(datas), max(datas), _TZ)
     existentes = cl.entries(api_key, workspace_id, user_id, win_start, win_end)
-    ja_existe: set[tuple[str, str]] = set()
+    # Duplicata EXATA = mesma tarefa E mesmo início (re-run). Blocos diferentes da mesma
+    # tarefa no mesmo dia (09-10, 11-12, 13-18) têm starts distintos -> entram normalmente.
+    ja_existe: set[tuple[str, datetime]] = set()
     for e in existentes:
-        d = _entry_local_date(e)
+        inst = _entry_start_instant(e)
         tid = e.get("taskId")
-        if d and tid:
-            ja_existe.add((d, tid))
+        if inst and tid:
+            ja_existe.add((tid, inst))
 
     gravados = 0
     pulados = 0
@@ -133,13 +139,14 @@ def add_entries(api_key, workspace_id, user_id, items: list[dict]) -> dict:
                 "motivo": res["motivo"],
             }
 
-        chave = (item["date"], res["task_id"])
+        start_local = _local_dt(item["date"], item["start"])
+        chave = (res["task_id"], start_local.astimezone(timezone.utc))
         if chave in ja_existe:
             pulados += 1
             continue
 
         payload = {
-            "start": to_utc_iso(_local_dt(item["date"], item["start"])),
+            "start": to_utc_iso(start_local),
             "end": to_utc_iso(_local_dt(item["date"], item["end"])),
             "description": item.get("description", ""),
             "projectId": res["project_id"],
