@@ -78,6 +78,13 @@ terminal não vê o plugin, `cp` também não veria.)
 Leia as preferências UMA vez: `... prefs get` → guarde `default` (pode ser `{}`) e a lista
 `learned` (cada item tem `match` e `project`, às vezes `task`/`tag`/`billable`).
 
+**Agenda ainda não conectada? Ofereça UMA vez (cobre quem já está conectado e entra direto
+aqui).** Se a credencial não tem `ics_url` (ou `... agenda --date <hoje>` volta `{"ics": false}`),
+**faça a pergunta** do passo 6 da Conexão — *"Posso me conectar à sua agenda do Outlook? Aí eu
+já trago suas reuniões automaticamente e você não precisa ditar uma por uma. Quer conectar ou
+prefere pular?"*. Se **sim**, conduza pelo passo 6 (link em **Publicar calendário**, NÃO
+Compartilhar; grava `ics_url`). Se **pular**, siga normal e não insista de novo nesta conversa.
+
 ## Passo 0 — Um dia ou um período?
 
 Pergunte em linguagem simples: **"Quer lançar as horas de hoje / de um dia, ou de um
