@@ -79,6 +79,14 @@ def test_add_entries_skips_duplicates(monkeypatch):
     assert out["gravados"] == 0 and out["pulados_duplicata"] == 1 and fake.created == []
 
 
+def test_local_dt_accepts_unpadded_hour():
+    from zoneinfo import ZoneInfo
+
+    dt = resolve._local_dt("2026-01-28", "9:00")  # hora sem zero à esquerda
+    assert (dt.hour, dt.minute) == (9, 0)
+    assert dt.tzinfo == ZoneInfo("America/Sao_Paulo")
+
+
 def test_add_entries_writes_and_stops_on_error(monkeypatch):
     fake = FakeCl(
         projects={"Proj X": [{"id": "p1", "name": "Proj X"}]},

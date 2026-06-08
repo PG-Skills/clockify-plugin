@@ -75,7 +75,14 @@ def resolve_activity(api_key, workspace_id, *, name, project=None, tag=None) -> 
 
 
 def _local_dt(d: str, hhmm: str) -> datetime:
-    return datetime.fromisoformat(f"{d}T{hhmm}").replace(tzinfo=_TZ)
+    """`'2026-01-28'` + `'9:00'`/`'09:00'` -> datetime aware no fuso local.
+    Constrói explicitamente (não usa fromisoformat) p/ aceitar hora sem zero à esquerda
+    e funcionar em Python 3.10 (que é estrito com HH:MM sem segundos)."""
+    y, mo, da = (int(x) for x in d.split("-"))
+    parts = hhmm.split(":")
+    hh = int(parts[0])
+    mm = int(parts[1]) if len(parts) > 1 else 0
+    return datetime(y, mo, da, hh, mm, tzinfo=_TZ)
 
 
 def _entry_local_date(entry: dict) -> str | None:

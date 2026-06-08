@@ -4,7 +4,7 @@ Sem IO, sem `self`: conversão de hora local -> ISO UTC, janelas UTC de um dia/i
 local (para as queries de time-entries) e listagem de dias úteis.
 """
 
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 _UTC_FMT = "%Y-%m-%dT%H:%M:%SZ"
@@ -14,7 +14,7 @@ def to_utc_iso(dt: datetime) -> str:
     """Datetime aware -> string ISO8601 em UTC com sufixo Z (formato do Clockify)."""
     if dt.tzinfo is None:
         raise ValueError("datetime precisa ser aware (com timezone)")
-    return dt.astimezone(UTC).strftime(_UTC_FMT)
+    return dt.astimezone(timezone.utc).strftime(_UTC_FMT)
 
 
 def day_window_utc(target_date: date, tz: ZoneInfo) -> tuple[str, str]:
@@ -23,7 +23,9 @@ def day_window_utc(target_date: date, tz: ZoneInfo) -> tuple[str, str]:
     O dia local 00:00–24:00 é convertido para instantes UTC — evita tratar 00:00–23:59
     local como se fosse UTC (que em UTC-3 perderia 3h do dia).
     """
-    day_start = datetime.combine(target_date, time.min, tzinfo=tz).astimezone(UTC)
+    day_start = datetime.combine(target_date, time.min, tzinfo=tz).astimezone(
+        timezone.utc
+    )
     day_end = day_start + timedelta(days=1)
     return day_start.strftime(_UTC_FMT), day_end.strftime(_UTC_FMT)
 
@@ -33,9 +35,9 @@ def range_window_utc(start: date, end: date, tz: ZoneInfo) -> tuple[str, str]:
 
     00:00 local de `start` até 00:00 local do dia seguinte a `end`, convertido para UTC.
     """
-    win_start = datetime.combine(start, time.min, tzinfo=tz).astimezone(UTC)
+    win_start = datetime.combine(start, time.min, tzinfo=tz).astimezone(timezone.utc)
     win_end = datetime.combine(end + timedelta(days=1), time.min, tzinfo=tz).astimezone(
-        UTC
+        timezone.utc
     )
     return win_start.strftime(_UTC_FMT), win_end.strftime(_UTC_FMT)
 
