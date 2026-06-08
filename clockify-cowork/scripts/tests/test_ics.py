@@ -299,6 +299,43 @@ def test_malformed_event_skipped_not_fatal():
     assert [e["title"] for e in evs] == ["OK"]  # o ruim é pulado, não aborta a agenda
 
 
+def test_recurrence_id_override_suppresses_master():
+    # Repro do bug do Outlook: o daily recorrente (10h-11h) foi REMARCADO na segunda
+    # 01/06 para 11h-12h. O ICS traz 2 VEVENTs com o mesmo UID:
+    #   - master (RRULE diário, 10h) + override (RECURRENCE-ID=seg 10h, DTSTART=seg 11h).
+    # Esperado: SEGUNDA mostra só 1 evento (11h-12h, o remarcado); o master NÃO pode
+    # gerar o fantasma das 10h naquele dia. TERÇA continua no horário normal (10h-11h).
+    master = _ev(
+        SUMMARY="Daily Meeting",
+        UID="daily-abc",
+        **{
+            "DTSTART;TZID=America/Sao_Paulo": "20260525T100000",
+            "DTEND;TZID=America/Sao_Paulo": "20260525T110000",
+        },
+        RRULE="FREQ=DAILY",
+    )
+    override = _ev(
+        SUMMARY="Daily Meeting",
+        UID="daily-abc",
+        **{
+            "RECURRENCE-ID;TZID=America/Sao_Paulo": "20260601T100000",
+            "DTSTART;TZID=America/Sao_Paulo": "20260601T110000",
+            "DTEND;TZID=America/Sao_Paulo": "20260601T120000",
+        },
+    )
+    cal = _cal(master, override)
+
+    seg = ics.events_for_day(cal, date(2026, 6, 1), TZ)
+    assert len(seg) == 1, [(e["start"].astimezone(TZ).hour, e["title"]) for e in seg]
+    assert (
+        seg[0]["start"].astimezone(TZ).hour == 11
+    )  # remarcado, não o fantasma das 10h
+
+    ter = ics.events_for_day(cal, date(2026, 6, 2), TZ)
+    assert len(ter) == 1
+    assert ter[0]["start"].astimezone(TZ).hour == 10  # série normal, intacta
+
+
 def test_interval_zero_does_not_crash():
     # INTERVAL=0 não pode estourar ZeroDivisionError (clamp -> 1) nem abortar a agenda
     bad = _ev(

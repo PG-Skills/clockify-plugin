@@ -284,22 +284,46 @@ def _exdate_dates(exdate_list, local):
     return out
 
 
+def _override_dates_by_uid(events, local):
+    """Datas (por UID) que têm um VEVENT de override (RECURRENCE-ID). A série master
+    NÃO deve gerar ocorrência nessas datas — o override é a verdade daquele dia.
+    Sem isso, remarcar UMA ocorrência no Outlook duplica o dia: fantasma no horário
+    antigo (master não suprimido) + a entrada remarcada (override)."""
+    out = {}
+    for ev in events:
+        rid, uid = ev.get("RECURRENCE-ID"), ev.get("UID")
+        if not rid or not uid:
+            continue
+        try:
+            dt, _ = _parse_dt(rid[1], rid[0], local)
+        except (ValueError, KeyError):
+            continue
+        out.setdefault(uid[1].strip(), set()).add(dt.date())
+    return out
+
+
 # ---- API pública ------------------------------------------------------------
 
 
 def events_for_day(ics_text, target_date, tz=_DEFAULT_TZ):
     local = ZoneInfo(tz) if isinstance(tz, str) else tz
+    evs = _parse_vevents(_unfold(ics_text))
+    overrides = _override_dates_by_uid(evs, local)
     out = []
-    for ev in _parse_vevents(_unfold(ics_text)):
+    for ev in evs:
         try:
-            out.extend(_event_occurrences(ev, target_date, local))
+            ov = frozenset()
+            if "RECURRENCE-ID" not in ev and "UID" in ev:
+                # só a série master é suprimida nas datas de override; o override em si não
+                ov = overrides.get(ev["UID"][1].strip(), frozenset())
+            out.extend(_event_occurrences(ev, target_date, local, ov))
         except (ValueError, KeyError):
             continue  # VEVENT malformado: pula só ele, não aborta a agenda inteira
     out.sort(key=lambda e: e["start"])
     return out
 
 
-def _event_occurrences(ev, target_date, local):
+def _event_occurrences(ev, target_date, local, override_dates=frozenset()):
     if "DTSTART" not in ev:
         return []
     if "STATUS" in ev and ev["STATUS"][1].strip().upper() == "CANCELLED":
@@ -333,7 +357,7 @@ def _event_occurrences(ev, target_date, local):
                 continue
             if not _within_count(d0, rrule, cand):
                 continue
-            if cand in exdates:
+            if cand in exdates or cand in override_dates:
                 continue
             occ_dates.append(cand)
     else:
