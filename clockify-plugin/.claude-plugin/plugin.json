@@ -1,6 +1,6 @@
 {
   "name": "clockify-plugin",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Lança horas no Clockify pelo Cowork via skill + CLI local (sem servidor).",
   "author": { "name": "AI Product Innovation · PG" },
   "keywords": ["clockify", "time-tracking", "cowork"],

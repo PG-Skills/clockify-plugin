@@ -32,17 +32,26 @@ Rode no terminal: `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/clockify_cli <subcomand
 Cada comando imprime UMA linha JSON.
 
 **Fallback (comum — NÃO é erro, não mostre "bug" pra pessoa):** em muitos ambientes do Cowork
-o terminal do sandbox **não enxerga** a pasta do plugin; o normal é rodar de uma cópia local
-em `.clockify/bin/`. ⚠️ Essa cópia mora na pasta do projeto e **persiste** — então ela fica
-VELHA depois que o plugin é atualizado. Por isso, ao usar a cópia local, **SEMPRE atualize-a
-antes de rodar** (NUNCA reuse a cópia anterior às cegas — foi cache velho de `.py`/`.pyc` que
-travou correções já publicadas). Uma vez no começo da conversa:
-1. **Limpe a cópia antiga** (inclui o bytecode): no terminal, `rm -rf .clockify/bin/clockify_cli`
-   (o terminal alcança `.clockify/`, que está montada).
-2. **Recrie do plugin ATUAL**: com as **ferramentas de arquivo** (enxergam os paths reais do
-   Mac mesmo quando o terminal não monta), Glob/Read TODOS os `.py` de
-   `${CLAUDE_PLUGIN_ROOT}/scripts/clockify_cli/` e Write em `.clockify/bin/clockify_cli/`.
-3. **Rode** com `python3 -B .clockify/bin/clockify_cli <subcomando>` (`-B` ignora bytecode velho).
+o terminal do sandbox **não enxerga** a pasta do plugin; aí você roda de uma cópia local em
+`.clockify/bin/clockify_cli/`. Essa cópia **persiste** na pasta do projeto, então poderia ficar
+VELHA quando o plugin é atualizado. Para **não recopiar à toa toda sessão** mas **nunca rodar
+código velho**, a cópia é **condicionada à versão** — recopia só quando a versão do plugin mudou:
+
+1. **Versão do plugin:** leia `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` (ferramenta de
+   arquivo) e pegue o campo `version` (ex.: `1.0.1`).
+2. **Versão já copiada:** leia o marcador `.clockify/bin/.cli-version` (terminal `cat` ou
+   ferramenta de arquivo). Se NÃO existir, trate como "desatualizado".
+3. **Se as duas batem** → a cópia está atual: **NÃO recopie**, rode direto
+   `python3 -B .clockify/bin/clockify_cli <subcomando>`.
+4. **Se diferem (ou falta o marcador)** → atualize a cópia UMA vez:
+   a. `rm -rf .clockify/bin/clockify_cli` (terminal; limpa inclusive o `.pyc`).
+   b. Com as **ferramentas de arquivo** (enxergam os paths reais do Mac mesmo quando o terminal
+      não monta), Glob/Read **TODOS os `.py`** de `${CLAUDE_PLUGIN_ROOT}/scripts/clockify_cli/` e
+      Write em `.clockify/bin/clockify_cli/` (são **9 arquivos** — se faltar um, o CLI quebra com
+      erro de import).
+   c. **Por último**, grave o marcador `.clockify/bin/.cli-version` com exatamente a `version` do
+      passo 1 (gravar só DEPOIS de copiar tudo garante que cópia parcial nunca "valide").
+   d. Rode `python3 -B .clockify/bin/clockify_cli <subcomando>` (`-B` ignora bytecode velho).
    (NÃO use `cp` no terminal — se ele não vê o plugin, `cp` também não veria.)
 
 Se `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/clockify_cli ...` rodar direto no terminal, use-o e

@@ -7,10 +7,11 @@ Você mostra à pessoa um relatório das horas que ela já lançou no Clockify. 
 na língua da pessoa.** O CLI devolve **JSON**; **você** verbaliza. **Nunca** mostre JSON/IDs/jargão.
 
 ## Como rodar o CLI
-Igual à skill `clockify-tracking`: `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/clockify_cli <cmd>`.
-Se o terminal não enxergar o plugin, use a cópia local **atualizada** (sempre
-`rm -rf .clockify/bin/clockify_cli` + recopiar os `.py` de `${CLAUDE_PLUGIN_ROOT}/scripts/clockify_cli/`
-com ferramentas de arquivo + rodar com `python3 -B .clockify/bin/clockify_cli`). Nunca reuse cópia velha.
+Igual à skill `clockify-tracking`, seção "Como rodar o CLI":
+`python3 ${CLAUDE_PLUGIN_ROOT}/scripts/clockify_cli <cmd>`. Se o terminal não enxergar o plugin,
+use a cópia local **condicionada à versão** — compare a `version` do `plugin.json` com o marcador
+`.clockify/bin/.cli-version` e **só recopie os 9 `.py` quando a versão mudar** (grave o marcador
+por último); rode com `python3 -B .clockify/bin/clockify_cli`. Nunca rode cópia de versão antiga.
 
 ## Pré-requisitos
 1. **Projeto (pasta local):** rode `pwd`; se for temporário (`/sessions/...` sem `/mnt/`) ou

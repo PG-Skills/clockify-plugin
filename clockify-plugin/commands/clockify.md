@@ -9,9 +9,9 @@ e criar/escolher uma pasta (a config não persiste sem isso) — e **pare** até
 verificação da skill `clockify-tracking`.)
 
 **Como rodar o CLI:** se `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/clockify_cli ...` não rodar no
-terminal (sandbox não enxerga o plugin), use a cópia local **atualizada** como na skill
-`clockify-tracking`, seção "Como rodar o CLI" (sempre `rm -rf .clockify/bin/clockify_cli` +
-recopiar do plugin + `python3 -B`) — nunca reuse cópia velha.
+terminal (sandbox não enxerga o plugin), use a cópia local **condicionada à versão** como na
+skill `clockify-tracking`, seção "Como rodar o CLI" (compara a `version` do plugin com o marcador
+`.clockify/bin/.cli-version`; só recopia quando muda; roda com `python3 -B`).
 
 **Passo 2 — Setup (só o `/clockify` faz isso).** O setup é **chave do Clockify + agenda do
 Outlook (obrigatória)**. `/clockify-tracking` e `/clockify-report` só rodam depois disso. Comece

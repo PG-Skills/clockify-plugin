@@ -40,6 +40,7 @@ Roda no Claude desktop app ("Cowork") sobre uma pasta de projeto local.
   - `.clockify/` deve estar no `.gitignore` do projeto do usuário — nunca versionado.
 - **Onboarding (só `/clockify`)**: o usuário cola a API key e conecta a **agenda do Outlook (obrigatória, link `.ics` via "Publicar calendário")**; o `/clockify` escreve `credentials.json`. `/clockify-tracking` e `/clockify-report` **não** fazem setup.
 - **Guard de pasta configurada**: `tracking` e `report` rodam `setup-status` como 1ª ação. `has_key:false` → mande rodar `/clockify` ou abrir a pasta certa no Cowork; `has_ics:false` → setup incompleto, mande concluir no `/clockify`. "Configurado" = chave **+** ICS.
+- **Cópia local do CLI no Cowork (version-gated)**: o terminal/sandbox não enxerga a pasta do plugin, então a skill espelha os 9 `.py` em `.clockify/bin/clockify_cli/`. Recopia **só quando a `version` do `plugin.json` difere** do marcador `.clockify/bin/.cli-version` (grava o marcador por último). ⇒ **bumpar a versão a cada release** é o que dispara a recópia (e o "Atualizar" do Cowork).
 - **Horários em UTC**: conversão de hora local (America/Sao_Paulo) em `pure.py`.
 - **Anti-duplicata**: chave `(tarefa, início)` — vários blocos da mesma tarefa no dia entram; só re-run idêntico (mesma tarefa e mesmo início) é pulado.
 - **`add` é resiliente a falha parcial**: para no 1.º erro, reporta "gravou N de M", sai ≠ 0.
