@@ -41,12 +41,15 @@ def save_credentials(
 ) -> None:
     d = base_dir()
     d.mkdir(parents=True, exist_ok=True)
+    d.chmod(0o700)  # dono-only, mesmo se a pasta já existia
     payload = {
         "api_key": api_key,
         "ics_url": ics_url,
         "workspace_id": workspace_id,
         "user_id": user_id,
     }
-    _credentials_path().write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    p = _credentials_path()
+    fd = os.open(p, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(json.dumps(payload, ensure_ascii=False, indent=2))
+    p.chmod(0o600)  # idempotente: cobre arquivo pré-existente

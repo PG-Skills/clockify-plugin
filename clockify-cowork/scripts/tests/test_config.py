@@ -40,3 +40,14 @@ def test_save_then_load_credentials(monkeypatch, tmp_path):
     }
     # gravado no caminho esperado
     assert json.loads((tmp_path / "credentials.json").read_text())["api_key"] == "KEY"
+
+
+def test_credentials_file_is_owner_only(monkeypatch, tmp_path):
+    import stat
+
+    monkeypatch.setenv("CLOCKIFY_DIR", str(tmp_path))
+    config.save_credentials(
+        api_key="KEY", ics_url=None, workspace_id="ws1", user_id="u1"
+    )
+    mode = stat.S_IMODE((tmp_path / "credentials.json").stat().st_mode)
+    assert mode == 0o600

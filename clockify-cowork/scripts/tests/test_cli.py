@@ -179,3 +179,9 @@ def test_add_rejects_non_list(monkeypatch, tmp_path):
         and out["error"] == "INVALID_ITEMS"
         and out["reason"] == "esperava_lista"
     )
+
+
+def test_business_days_invalid_range(monkeypatch, tmp_path):
+    monkeypatch.setenv("CLOCKIFY_DIR", str(tmp_path))
+    code, out = _run(["business-days", "--start", "2026-02-02", "--end", "2026-01-30"])
+    assert code == 2 and out["error"] == "INVALID_INPUT"

@@ -187,7 +187,7 @@ def main(argv=None, *, stdout=None) -> int:
             raw = (
                 sys.stdin.read()
                 if args.json == "-"
-                else open(args.json, encoding="utf-8").read()
+                else Path(args.json).read_text(encoding="utf-8")
             )
             try:
                 items = json.loads(raw)
@@ -253,6 +253,9 @@ def main(argv=None, *, stdout=None) -> int:
         _emit({"error": "UNKNOWN_COMMAND", "cmd": args.cmd}, stdout)
         return EXIT_UNKNOWN
 
+    except ValueError as e:
+        _emit({"error": "INVALID_INPUT", "reason": str(e)}, stdout)
+        return EXIT_UNKNOWN
     except http_json.HttpError as e:
         _emit({"error": "HTTP_ERROR", "status": e.status}, stdout)
         return EXIT_HTTP
