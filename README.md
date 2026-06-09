@@ -19,14 +19,20 @@ Ferramenta interna da **PG**, desenvolvida pelo time **AI Product Innovation**.
 O **Claude desktop app** ("Cowork") com acesso à pasta do seu projeto.
 Nenhuma outra dependência: a CLI Python usa apenas stdlib.
 
-## Instalar (3 passos no Cowork)
+## Instalar
+
+No **Cowork**, vá em **Customize → + → Criar plugin → Adicionar marketplace** e cole a URL:
 
 ```
-/plugin marketplace add https://github.com/PG-Skills/clockify-plugin.git
-/plugin install clockify-plugin@pg-clockify
+https://github.com/PG-Skills/clockify-plugin
 ```
 
-Na primeira sessão, use `/clockify` para conectar:
+Instale o `clockify-plugin` e ligue **"Sincronizar automaticamente"** (nos 3 pontinhos) para
+receber sempre a última versão.
+
+> Passo a passo completo — com a **pasta local** e o **setup inicial**: **[`INSTALL.md`](INSTALL.md)**.
+
+Depois, em uma sessão **na pasta do seu projeto**, rode `/clockify` para conectar:
 
 ```
 /clockify
