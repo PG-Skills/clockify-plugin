@@ -378,3 +378,70 @@ def test_setup_status_key_without_ics_incomplete(monkeypatch, tmp_path):
     assert code == 0
     assert out["has_key"] is True and out["has_ics"] is False
     assert out["configured"] is False and out["dir"] == str(tmp_path)
+
+
+def test_whoami_network_blocked(monkeypatch, tmp_path):
+    # proxy do sandbox recusa a saída (URLError) → NETWORK_BLOCKED, nunca traceback
+    import urllib.error
+
+    import http_json
+
+    monkeypatch.setenv("CLOCKIFY_DIR", str(tmp_path))
+    config.save_credentials(
+        api_key="KEY", ics_url=None, workspace_id=None, user_id=None
+    )
+
+    def boom(*a, **k):
+        raise urllib.error.URLError(OSError("Tunnel connection failed: 403 Forbidden"))
+
+    monkeypatch.setattr(http_json, "request_json", boom)
+    code, out = _run(["whoami"])
+    assert code == 5 and out["error"] == "NETWORK_BLOCKED"
+    assert "403" in out["reason"]
+
+
+def test_entries_network_blocked(monkeypatch, tmp_path):
+    import urllib.error
+
+    _seed_creds(monkeypatch, tmp_path)
+
+    def boom(*a, **k):
+        raise urllib.error.URLError("connection refused")
+
+    monkeypatch.setattr(clockify, "entries", boom)
+    code, out = _run(["entries", "--date", "2026-01-28"])
+    assert code == 5 and out["error"] == "NETWORK_BLOCKED"
+
+
+def test_agenda_network_blocked_is_not_ics_error(monkeypatch, tmp_path):
+    # bloqueio de rede ao buscar o ICS NÃO pode virar ICS_ERROR ("seu link não funciona")
+    import urllib.error
+
+    import ics as ics_mod
+
+    _seed_creds(monkeypatch, tmp_path, ics_url="https://outlook.example/cal.ics")
+
+    def boom(url):
+        raise urllib.error.URLError(OSError("Tunnel connection failed: 403 Forbidden"))
+
+    monkeypatch.setattr(ics_mod, "fetch_ics", boom)
+    code, out = _run(["agenda", "--date", "2026-01-28"])
+    assert code == 5 and out["error"] == "NETWORK_BLOCKED"
+
+
+def test_agenda_dead_link_still_ics_error(monkeypatch, tmp_path):
+    # HTTPError (link morto/404) continua ICS_ERROR — só bloqueio vira NETWORK_BLOCKED
+    import urllib.error
+
+    import ics as ics_mod
+
+    _seed_creds(monkeypatch, tmp_path, ics_url="https://outlook.example/cal.ics")
+
+    def boom(url):
+        raise urllib.error.HTTPError(
+            "https://outlook.example/cal.ics", 404, "Not Found", None, None
+        )
+
+    monkeypatch.setattr(ics_mod, "fetch_ics", boom)
+    code, out = _run(["agenda", "--date", "2026-01-28"])
+    assert code == 5 and out["error"] == "ICS_ERROR"

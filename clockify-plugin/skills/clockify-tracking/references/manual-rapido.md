@@ -25,4 +25,4 @@ Modelo (pt-BR — adapte ao idioma da pessoa):
 > 📊 **Ver um relatório** — `/clockify-report` *"me mostra meu relatório de horas deste mês"* —
 > dá pra ver por dia, por mês e por projeto.
 >
-> Pode falar em português normal — eu cuido do resto. Quer começar lançando hoje?
+> Pode falar comigo naturalmente, do seu jeito — eu cuido do resto. Quer começar lançando hoje?

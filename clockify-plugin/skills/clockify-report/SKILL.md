@@ -3,8 +3,12 @@ name: clockify-report
 description: Mostra um relatório das horas lançadas no Clockify (diário por mês, ou mensal por um intervalo de meses), conversando na língua da pessoa.
 ---
 
-Você mostra à pessoa um relatório das horas que ela já lançou no Clockify. **Converse SEMPRE
-na língua da pessoa.** O CLI devolve **JSON**; **você** verbaliza. **Nunca** mostre JSON/IDs/jargão.
+Você mostra à pessoa um relatório das horas que ela já lançou no Clockify. O CLI devolve
+**JSON**; **você** verbaliza. **Nunca** mostre JSON/IDs/jargão.
+
+**Língua: fale SEMPRE a língua da pessoa — NUNCA assuma português.** A skill e as frases-modelo
+estão em pt-BR só como roteiro: traduza tudo. Detecte a língua pelo que a pessoa escreve; se ela
+ainda não escreveu nada, use a língua da conversa/interface do Claude dela.
 
 ## Como rodar o CLI
 Igual à skill `clockify-tracking`, seção "Como rodar o CLI":
@@ -26,6 +30,11 @@ por último); rode com `python3 -B .clockify/bin/clockify_cli`. Nunca rode cópi
      conectar a agenda do Outlook (agora obrigatória). Rode **/clockify** pra concluir."*
    Se algum comando voltar `{"error":"INVALID_KEY"}`, a chave parou de valer → mande rodar
    **/clockify**.
+   Se voltar `{"error":"NETWORK_BLOCKED",...}`: o Cowork **deste computador** está bloqueando
+   meu acesso à internet (NÃO é a chave). Diga leigo que é uma permissão de rede do Cowork
+   nesta máquina — permitir quando o Cowork pedir (ou nas configurações); em computador de
+   empresa, o administrador talvez precise liberar `api.clockify.me`. **Nunca** mande a pessoa
+   pro terminal nem mostre o erro técnico.
 
 ## Datas — pelo sistema, nunca de cabeça
 Você erra calendário. Pegue o "hoje" real (`date +"%Y-%m"`) e resolva meses pelo `date` do

@@ -4,6 +4,28 @@ Mudanças relevantes do plugin **clockify-plugin** (marketplace `pg-clockify`).
 Segue [semver](https://semver.org). A `version` é fixada em **lockstep** no
 `clockify-plugin/.claude-plugin/plugin.json` e em `.claude-plugin/marketplace.json`.
 
+## [1.0.3] — 2026-06-09
+
+### Adicionado
+- **`NETWORK_BLOCKED` — bloqueio de rede do sandbox vira erro amigável.** Quando o proxy do
+  Cowork recusa a saída (ex.: `api.clockify.me` não liberado naquela máquina), o CLI agora
+  emite `{"error":"NETWORK_BLOCKED","reason":...}` (exit 5) em vez de estourar traceback —
+  e o bloqueio nunca é confundido com chave inválida. Na busca do ICS, bloqueio de rede
+  também vira `NETWORK_BLOCKED` (link morto/4xx continua `ICS_ERROR`).
+- **Skills orientam o desbloqueio em linguagem leiga.** Ao ver `NETWORK_BLOCKED`, as skills e
+  o `/clockify` explicam que é permissão de rede do Cowork **daquele computador** (permitir
+  quando o Cowork pedir; conta de empresa → administrador liberar `api.clockify.me`) — e
+  **nunca** mandam a pessoa abrir terminal. `INSTALL.md` ganhou a seção "Permissão de rede".
+
+## [1.0.2] — 2026-06-09
+
+### Mudou
+- **Língua da conversa: nunca assumir português.** As skills, os comandos e o `/clockify`
+  agora trazem regra explícita: as frases-modelo em pt-BR são apenas roteiro — detectar a
+  língua da pessoa pelo que ela escreve (ou pela língua da conversa do Claude dela, quando o
+  comando vem sem texto) e traduzir tudo. O manual de boas-vindas perdeu a frase fixa
+  "pode falar em português normal".
+
 ## [1.0.1] — 2026-06-08
 
 ### Mudou

@@ -1,11 +1,13 @@
 """Dispatch do CLI. Cada subcomando imprime JSON em stdout (idioma-neutro) e
 retorna um código de saída (0=ok, 2=cmd desconhecido/items inválidos, 3=sem chave,
-4=chave inválida, 5=erro de rede/HTTP). A skill conversacional interpreta o JSON; o CLI
+4=chave inválida, 5=erro de rede/HTTP — inclui NETWORK_BLOCKED quando a saída de rede
+do sandbox está bloqueada). A skill conversacional interpreta o JSON; o CLI
 nunca escreve frase pronta pro usuário."""
 
 import argparse
 import json
 import sys
+import urllib.error
 from pathlib import Path
 
 import clockify
@@ -262,6 +264,12 @@ def main(argv=None, *, stdout=None) -> int:
                 evs = ics.events_for_day(
                     text, date.fromisoformat(args.date), ZoneInfo("America/Sao_Paulo")
                 )
+            except urllib.error.HTTPError as e:
+                # link morto/sem permissão (4xx/5xx do Outlook) = problema do LINK
+                _emit({"error": "ICS_ERROR", "reason": str(e)}, stdout)
+                return EXIT_HTTP
+            except urllib.error.URLError:
+                raise  # saída de rede bloqueada → NETWORK_BLOCKED (handler global)
             except (ValueError, OSError) as e:
                 _emit({"error": "ICS_ERROR", "reason": str(e)}, stdout)
                 return EXIT_HTTP
@@ -394,4 +402,10 @@ def main(argv=None, *, stdout=None) -> int:
         return EXIT_UNKNOWN
     except http_json.HttpError as e:
         _emit({"error": "HTTP_ERROR", "status": e.status}, stdout)
+        return EXIT_HTTP
+    except (urllib.error.URLError, TimeoutError) as e:
+        # saída de rede bloqueada (proxy do sandbox recusa/derruba a conexão) ou rede
+        # fora — nunca deixar virar traceback nem ser confundido com chave inválida
+        reason = str(getattr(e, "reason", "") or e)
+        _emit({"error": "NETWORK_BLOCKED", "reason": reason}, stdout)
         return EXIT_HTTP

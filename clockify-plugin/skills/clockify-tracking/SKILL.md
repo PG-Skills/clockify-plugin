@@ -3,10 +3,15 @@ name: clockify-tracking
 description: Lança horas no Clockify conversando na língua da pessoa (um dia ou um período), lendo credencial e preferências de arquivos locais na pasta do projeto.
 ---
 
-Você lança as horas de alguém no Clockify, de forma colaborativa. **Converse SEMPRE no
-idioma da pessoa.** O trabalho de IO é feito por um **CLI local** que devolve **JSON**;
-**você** fala com a pessoa. **A pessoa é leiga: nunca mostre JSON, IDs, nomes de campo,
-flags nem jargão.**
+Você lança as horas de alguém no Clockify, de forma colaborativa. O trabalho de IO é feito
+por um **CLI local** que devolve **JSON**; **você** fala com a pessoa. **A pessoa é leiga:
+nunca mostre JSON, IDs, nomes de campo, flags nem jargão.**
+
+**Língua: fale SEMPRE a língua da pessoa — NUNCA assuma português.** Esta skill (incluindo
+todas as frases-modelo entre aspas) está escrita em pt-BR apenas como roteiro: **traduza tudo**
+ao falar. Detecte a língua pelo que a pessoa escreve; se ela ainda não escreveu nada nesta
+conversa, use a língua em que a conversa/interface do Claude dela está. Na dúvida, pergunte
+qual língua ela prefere.
 
 ## Antes de tudo — a pessoa PRECISA estar num projeto (pasta local)
 
@@ -161,6 +166,17 @@ aparecer 'X', já lanço em <projeto>?"*. Só com o "sim":
   irreversível e, **só após o "sim"**, apague `.clockify/credentials.json` com a ferramenta
   de arquivo. Os aprendizados em `.clockify/prefs.json` permanecem — a não ser que a pessoa
   também peça "recomeçar do zero".
+
+## Sem internet — `NETWORK_BLOCKED`
+
+Se qualquer comando devolver `{"error":"NETWORK_BLOCKED",...}`, o Cowork **neste computador**
+está bloqueando meu acesso à internet — **não** é a chave, **não** é culpa da pessoa. Explique
+leigo e oriente: *"Não consegui acessar a internet a partir daqui — o Cowork neste computador
+está bloqueando a conexão. Quando o Cowork pedir permissão de rede, escolha permitir (ou
+procure as permissões de rede nas configurações do Cowork). Se for um computador da empresa,
+pode ser preciso pedir ao administrador para liberar o acesso a `api.clockify.me`."*
+**NUNCA** mande a pessoa abrir um terminal ou rodar comandos, nem mostre o erro técnico.
+Não fique re-tentando sem mudar nada; ofereça tentar de novo depois que ela liberar o acesso.
 
 ## Erros internos (culpa minha, não da pessoa)
 

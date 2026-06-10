@@ -36,3 +36,11 @@
 
 > **Importante:** sempre abra a **mesma pasta** do passo 3. Se abrir outra, os comandos avisam
 > para rodar `/clockify` ali primeiro.
+
+## Permissão de rede (se algo falhar)
+
+O plugin acessa a internet de dentro do Cowork: ele fala com `api.clockify.me` e lê o link do
+seu calendário do Outlook. Se o Cowork pedir **permissão de rede**, **permita**. Se aparecer um
+aviso de que a conexão foi **bloqueada**, verifique as permissões de rede nas configurações do
+Cowork **deste computador** — em contas gerenciadas pela empresa, pode ser necessário pedir ao
+administrador para liberar esses endereços.
